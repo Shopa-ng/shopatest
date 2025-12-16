@@ -23,8 +23,8 @@ export declare class ProductsController {
             price: import("@prisma/client/runtime/library").Decimal;
             stock: number;
             images: string[];
-            categoryId: string | null;
             vendorId: string;
+            categoryId: string | null;
         })[];
         meta: {
             total: number;
@@ -53,8 +53,8 @@ export declare class ProductsController {
             price: import("@prisma/client/runtime/library").Decimal;
             stock: number;
             images: string[];
-            categoryId: string | null;
             vendorId: string;
+            categoryId: string | null;
         })[];
         meta: {
             total: number;
@@ -87,9 +87,9 @@ export declare class ProductsController {
             updatedAt: Date;
             rating: number;
             vendorId: string | null;
-            productId: string | null;
             comment: string | null;
             reviewerId: string;
+            productId: string | null;
         })[];
     } & {
         name: string;
@@ -102,8 +102,8 @@ export declare class ProductsController {
         price: import("@prisma/client/runtime/library").Decimal;
         stock: number;
         images: string[];
-        categoryId: string | null;
         vendorId: string;
+        categoryId: string | null;
     }>;
     create(userId: string, createDto: CreateProductDto): Promise<{
         vendor: {
@@ -123,8 +123,8 @@ export declare class ProductsController {
         price: import("@prisma/client/runtime/library").Decimal;
         stock: number;
         images: string[];
-        categoryId: string | null;
         vendorId: string;
+        categoryId: string | null;
     }>;
     update(id: string, userId: string, updateDto: UpdateProductDto): Promise<{
         name: string;
@@ -137,8 +137,8 @@ export declare class ProductsController {
         price: import("@prisma/client/runtime/library").Decimal;
         stock: number;
         images: string[];
-        categoryId: string | null;
         vendorId: string;
+        categoryId: string | null;
     }>;
     delete(id: string, userId: string): Promise<{
         name: string;
@@ -151,7 +151,7 @@ export declare class ProductsController {
         price: import("@prisma/client/runtime/library").Decimal;
         stock: number;
         images: string[];
-        categoryId: string | null;
         vendorId: string;
+        categoryId: string | null;
     }>;
 }

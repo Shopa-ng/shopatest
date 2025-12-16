@@ -89,8 +89,8 @@ export declare class VendorsController {
             price: import("@prisma/client/runtime/library").Decimal;
             stock: number;
             images: string[];
-            categoryId: string | null;
             vendorId: string;
+            categoryId: string | null;
         }[];
     } & {
         description: string | null;

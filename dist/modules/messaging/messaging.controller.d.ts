@@ -13,16 +13,16 @@ export declare class MessagingController {
         } & {
             id: string;
             createdAt: Date;
+            content: string;
             conversationId: string;
             readAt: Date | null;
-            content: string;
             senderId: string;
         };
         members: ({
             user: {
-                id: string;
                 firstName: string;
                 lastName: string;
+                id: string;
             };
         } & {
             id: string;
@@ -38,22 +38,22 @@ export declare class MessagingController {
         } & {
             id: string;
             createdAt: Date;
+            content: string;
             conversationId: string;
             readAt: Date | null;
-            content: string;
             senderId: string;
         })[];
         id: string;
-        lastMessageAt: Date;
         createdAt: Date;
         updatedAt: Date;
+        lastMessageAt: Date;
     }[]>;
     createConversation(userId: string, dto: CreateConversationDto): Promise<{
         members: ({
             user: {
-                id: string;
                 firstName: string;
                 lastName: string;
+                id: string;
             };
         } & {
             id: string;
@@ -63,16 +63,16 @@ export declare class MessagingController {
         })[];
     } & {
         id: string;
-        lastMessageAt: Date;
         createdAt: Date;
         updatedAt: Date;
+        lastMessageAt: Date;
     }>;
     getConversation(id: string, userId: string): Promise<{
         members: ({
             user: {
-                id: string;
                 firstName: string;
                 lastName: string;
+                id: string;
             };
         } & {
             id: string;
@@ -82,36 +82,36 @@ export declare class MessagingController {
         })[];
     } & {
         id: string;
-        lastMessageAt: Date;
         createdAt: Date;
         updatedAt: Date;
+        lastMessageAt: Date;
     }>;
     getMessages(conversationId: string, userId: string, page?: number, limit?: number): Promise<({
         sender: {
-            id: string;
             firstName: string;
             lastName: string;
+            id: string;
         };
     } & {
         id: string;
         createdAt: Date;
+        content: string;
         conversationId: string;
         readAt: Date | null;
-        content: string;
         senderId: string;
     })[]>;
     sendMessage(conversationId: string, userId: string, dto: SendMessageDto): Promise<{
         sender: {
-            id: string;
             firstName: string;
             lastName: string;
+            id: string;
         };
     } & {
         id: string;
         createdAt: Date;
+        content: string;
         conversationId: string;
         readAt: Date | null;
-        content: string;
         senderId: string;
     }>;
     markAsRead(conversationId: string, userId: string): Promise<{

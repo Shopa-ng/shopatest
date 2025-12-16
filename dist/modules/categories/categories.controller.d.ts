@@ -8,52 +8,52 @@ export declare class CategoriesController {
             products: number;
         };
     } & {
-        id: string;
         name: string;
         description: string | null;
-        icon: string | null;
-        isActive: boolean;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
+        isActive: boolean;
+        icon: string | null;
     })[]>;
     findById(id: string): Promise<{
         _count: {
             products: number;
         };
     } & {
-        id: string;
         name: string;
         description: string | null;
-        icon: string | null;
-        isActive: boolean;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
+        isActive: boolean;
+        icon: string | null;
     }>;
     create(createDto: CreateCategoryDto): Promise<{
-        id: string;
         name: string;
         description: string | null;
-        icon: string | null;
-        isActive: boolean;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
+        isActive: boolean;
+        icon: string | null;
     }>;
     update(id: string, updateDto: UpdateCategoryDto): Promise<{
-        id: string;
         name: string;
         description: string | null;
-        icon: string | null;
-        isActive: boolean;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
+        isActive: boolean;
+        icon: string | null;
     }>;
     delete(id: string): Promise<{
-        id: string;
         name: string;
         description: string | null;
-        icon: string | null;
-        isActive: boolean;
+        id: string;
         createdAt: Date;
         updatedAt: Date;
+        isActive: boolean;
+        icon: string | null;
     }>;
 }

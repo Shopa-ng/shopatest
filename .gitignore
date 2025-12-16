@@ -1,6 +1,61 @@
-node_modules
-# Keep environment variables out of version control
-.env
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-/generated/prisma
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+
+.DS_Store
+node_modules
+dist/
+# testing
+/coverage
+**/coverage/
+src/coverage/
+coverage/
+*.lcov
+lcov.info
+
 .env
+.env.docker
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+/dist
+
+/service.json
+
+/service_file/
+
+/.vscode
+
+# Claude AI assistant files
+.claude/
+.claude
+CLAUDE.md
+claude-*.env.docker
