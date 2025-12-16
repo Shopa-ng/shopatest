@@ -1,0 +1,343 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  STUDENT
+  VENDOR
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  HELD
+  RELEASED
+  REFUNDED
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  CLOSED
+}
+
+enum NotificationType {
+  ORDER_UPDATE
+  PAYMENT_STATUS
+  DISPUTE_UPDATE
+  NEW_MESSAGE
+  REVIEW_RECEIVED
+  VENDOR_VERIFIED
+  SYSTEM
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model Campus {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  location  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users    User[]
+  products Product[]
+
+  @@map("campuses")
+}
+
+model User {
+  id                 String             @id @default(uuid())
+  email              String             @unique
+  password           String
+  firstName          String
+  lastName           String
+  phone              String?
+  role               UserRole           @default(STUDENT)
+  isVerified         Boolean            @default(false)
+  isEmailVerified    Boolean            @default(false)
+  studentIdUrl       String?
+  verificationStatus VerificationStatus @default(PENDING)
+  fcmToken           String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  campusId String?
+  campus   Campus? @relation(fields: [campusId], references: [id])
+
+  vendor              Vendor?
+  ordersAsBuyer       Order[]              @relation("BuyerOrders")
+  disputesRaised      Dispute[]            @relation("DisputeRaisedBy")
+  disputesResolved    Dispute[]            @relation("DisputeResolvedBy")
+  reviews             Review[]
+  messagesSent        Message[]
+  notifications       Notification[]
+  refreshTokens       RefreshToken[]
+  conversationMembers ConversationMember[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Vendor {
+  id                 String             @id @default(uuid())
+  storeName          String
+  description        String?
+  logo               String?
+  verificationStatus VerificationStatus @default(PENDING)
+  rating             Float              @default(0)
+  totalSales         Int                @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  products Product[]
+  orders   Order[]
+  reviews  Review[]  @relation("VendorReviews")
+
+  @@map("vendors")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  icon        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  stock       Int      @default(0)
+  images      String[] @default([])
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  campusId String
+  campus   Campus @relation(fields: [campusId], references: [id])
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  orderItems OrderItem[]
+  reviews    Review[]
+
+  @@index([campusId])
+  @@index([vendorId])
+  @@index([categoryId])
+  @@map("products")
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  orderNumber     String      @unique @default(uuid())
+  status          OrderStatus @default(PENDING)
+  totalAmount     Decimal     @db.Decimal(10, 2)
+  deliveryAddress String?
+  deliveryMethod  String?
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  buyerId String
+  buyer   User   @relation("BuyerOrders", fields: [buyerId], references: [id])
+
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id])
+
+  orderItems OrderItem[]
+  payment    Payment?
+  disputes   Dispute[]
+
+  @@index([buyerId])
+  @@index([vendorId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  amount            Decimal       @db.Decimal(10, 2)
+  status            PaymentStatus @default(PENDING)
+  provider          String        @default("paystack") // paystack or flutterwave
+  reference         String        @unique
+  providerReference String?
+  escrowReleaseDate DateTime?
+  metadata          Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}
+
+model Dispute {
+  id          String        @id @default(uuid())
+  reason      String
+  description String?
+  status      DisputeStatus @default(OPEN)
+  resolution  String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id])
+
+  raisedById String
+  raisedBy   User   @relation("DisputeRaisedBy", fields: [raisedById], references: [id])
+
+  resolvedById String?
+  resolvedBy   User?   @relation("DisputeResolvedBy", fields: [resolvedById], references: [id])
+
+  @@map("disputes")
+}
+
+model Conversation {
+  id            String   @id @default(uuid())
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  members  ConversationMember[]
+  messages Message[]
+
+  @@map("conversations")
+}
+
+model ConversationMember {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@map("conversation_members")
+}
+
+model Message {
+  id        String    @id @default(uuid())
+  content   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id])
+
+  @@index([conversationId])
+  @@map("messages")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int      @db.SmallInt
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reviewerId String
+  reviewer   User   @relation(fields: [reviewerId], references: [id])
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  vendorId String?
+  vendor   Vendor? @relation("VendorReviews", fields: [vendorId], references: [id])
+
+  @@map("reviews")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notifications")
+}
