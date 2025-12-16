@@ -135,8 +135,8 @@ export declare class OrdersService {
                 price: Prisma.Decimal;
                 stock: number;
                 images: string[];
-                categoryId: string | null;
                 vendorId: string;
+                categoryId: string | null;
             };
         } & {
             id: string;

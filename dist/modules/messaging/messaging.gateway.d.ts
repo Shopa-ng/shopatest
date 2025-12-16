@@ -21,16 +21,16 @@ export declare class MessagingGateway implements OnGatewayConnection, OnGatewayD
         success: boolean;
         message: {
             sender: {
-                id: string;
                 firstName: string;
                 lastName: string;
+                id: string;
             };
         } & {
             id: string;
             createdAt: Date;
+            content: string;
             conversationId: string;
             readAt: Date | null;
-            content: string;
             senderId: string;
         };
         error?: undefined;

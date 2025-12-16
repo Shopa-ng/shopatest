@@ -1,6 +1,6 @@
+import { VerificationStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma';
 import { UpdateUserDto, UploadStudentIdDto } from './dto';
-import { VerificationStatus } from '@prisma/client';
 export declare class UsersService {
     private prisma;
     constructor(prisma: PrismaService);

@@ -15,12 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
-const users_service_1 = require("./users.service");
-const dto_1 = require("./dto");
-const guards_1 = require("../auth/guards");
-const decorators_1 = require("../../common/decorators");
-const guards_2 = require("../../common/guards");
 const client_1 = require("@prisma/client");
+const decorators_1 = require("../../common/decorators");
+const guards_1 = require("../../common/guards");
+const guards_2 = require("../auth/guards");
+const dto_1 = require("./dto");
+const users_service_1 = require("./users.service");
 let UsersController = class UsersController {
     constructor(usersService) {
         this.usersService = usersService;
@@ -70,7 +70,7 @@ __decorate([
 ], UsersController.prototype, "uploadStudentId", null);
 __decorate([
     (0, common_1.Get)('pending-verifications'),
-    (0, common_1.UseGuards)(guards_2.RolesGuard),
+    (0, common_1.UseGuards)(guards_1.RolesGuard),
     (0, decorators_1.Roles)(client_1.UserRole.ADMIN),
     (0, swagger_1.ApiOperation)({ summary: 'Get pending user verifications (Admin only)' }),
     __param(0, (0, common_1.Query)('campusId')),
@@ -80,7 +80,7 @@ __decorate([
 ], UsersController.prototype, "getPendingVerifications", null);
 __decorate([
     (0, common_1.Patch)(':id/verify'),
-    (0, common_1.UseGuards)(guards_2.RolesGuard),
+    (0, common_1.UseGuards)(guards_1.RolesGuard),
     (0, decorators_1.Roles)(client_1.UserRole.ADMIN),
     (0, swagger_1.ApiOperation)({ summary: 'Verify/reject user (Admin only)' }),
     __param(0, (0, common_1.Param)('id')),
@@ -92,7 +92,7 @@ __decorate([
 exports.UsersController = UsersController = __decorate([
     (0, swagger_1.ApiTags)('Users'),
     (0, common_1.Controller)('users'),
-    (0, common_1.UseGuards)(guards_1.JwtAuthGuard),
+    (0, common_1.UseGuards)(guards_2.JwtAuthGuard),
     (0, swagger_1.ApiBearerAuth)(),
     __metadata("design:paramtypes", [users_service_1.UsersService])
 ], UsersController);

@@ -10,6 +10,7 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const core_1 = require("@nestjs/core");
+const throttler_1 = require("@nestjs/throttler");
 const prisma_1 = require("./prisma");
 const filters_1 = require("./common/filters");
 const auth_1 = require("./modules/auth");
@@ -25,6 +26,8 @@ const notifications_1 = require("./modules/notifications");
 const messaging_1 = require("./modules/messaging");
 const upload_1 = require("./shared/upload");
 const categories_1 = require("./modules/categories");
+const analytics_1 = require("./shared/analytics");
+const email_1 = require("./shared/email");
 const config_2 = require("./config");
 let AppModule = class AppModule {
 };
@@ -40,8 +43,15 @@ exports.AppModule = AppModule = __decorate([
                     config_2.paystackConfig,
                     config_2.flutterwaveConfig,
                     config_2.cloudinaryConfig,
+                    config_2.mailConfig,
                 ],
             }),
+            throttler_1.ThrottlerModule.forRoot([
+                {
+                    ttl: 60000,
+                    limit: 100,
+                },
+            ]),
             prisma_1.PrismaModule,
             auth_1.AuthModule,
             users_1.UsersModule,
@@ -56,11 +66,17 @@ exports.AppModule = AppModule = __decorate([
             messaging_1.MessagingModule,
             upload_1.UploadModule,
             categories_1.CategoriesModule,
+            analytics_1.AnalyticsModule,
+            email_1.EmailModule,
         ],
         providers: [
             {
                 provide: core_1.APP_FILTER,
                 useClass: filters_1.AllExceptionsFilter,
+            },
+            {
+                provide: core_1.APP_GUARD,
+                useClass: throttler_1.ThrottlerGuard,
             },
         ],
     })

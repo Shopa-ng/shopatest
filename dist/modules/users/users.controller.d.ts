@@ -1,6 +1,6 @@
-import { UsersService } from './users.service';
-import { UpdateUserDto, UploadStudentIdDto } from './dto';
 import { VerificationStatus } from '@prisma/client';
+import { UpdateUserDto, UploadStudentIdDto } from './dto';
+import { UsersService } from './users.service';
 export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);

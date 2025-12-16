@@ -14,9 +14,9 @@ export declare class ReviewsController {
         updatedAt: Date;
         rating: number;
         vendorId: string | null;
-        productId: string | null;
         comment: string | null;
         reviewerId: string;
+        productId: string | null;
     })[]>;
     getVendorReviews(vendorId: string): Promise<({
         reviewer: {
@@ -29,9 +29,9 @@ export declare class ReviewsController {
         updatedAt: Date;
         rating: number;
         vendorId: string | null;
-        productId: string | null;
         comment: string | null;
         reviewerId: string;
+        productId: string | null;
     })[]>;
     create(userId: string, createDto: CreateReviewDto): Promise<{
         reviewer: {
@@ -44,9 +44,9 @@ export declare class ReviewsController {
         updatedAt: Date;
         rating: number;
         vendorId: string | null;
-        productId: string | null;
         comment: string | null;
         reviewerId: string;
+        productId: string | null;
     }>;
     update(id: string, userId: string, updateDto: UpdateReviewDto): Promise<{
         id: string;
@@ -54,9 +54,9 @@ export declare class ReviewsController {
         updatedAt: Date;
         rating: number;
         vendorId: string | null;
-        productId: string | null;
         comment: string | null;
         reviewerId: string;
+        productId: string | null;
     }>;
     delete(id: string, userId: string): Promise<{
         deleted: boolean;

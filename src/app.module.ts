@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 import { PrismaModule } from './prisma';
 import { AllExceptionsFilter } from './common/filters';
@@ -17,6 +18,8 @@ import { NotificationsModule } from './modules/notifications';
 import { MessagingModule } from './modules/messaging';
 import { UploadModule } from './shared/upload';
 import { CategoriesModule } from './modules/categories';
+import { AnalyticsModule } from './shared/analytics';
+import { EmailModule } from './shared/email';
 
 import {
   appConfig,
@@ -24,6 +27,7 @@ import {
   paystackConfig,
   flutterwaveConfig,
   cloudinaryConfig,
+  mailConfig,
 } from './config';
 
 @Module({
@@ -36,8 +40,15 @@ import {
         paystackConfig,
         flutterwaveConfig,
         cloudinaryConfig,
+        mailConfig,
       ],
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 minute
+        limit: 100, // 100 requests per minute
+      },
+    ]),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -52,11 +63,17 @@ import {
     MessagingModule,
     UploadModule,
     CategoriesModule,
+    AnalyticsModule,
+    EmailModule,
   ],
   providers: [
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

@@ -104,8 +104,8 @@ export declare class OrdersController {
                 price: import("@prisma/client/runtime/library").Decimal;
                 stock: number;
                 images: string[];
-                categoryId: string | null;
                 vendorId: string;
+                categoryId: string | null;
             };
         } & {
             id: string;
