@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 
 import { PrismaModule } from './prisma';
 import { AllExceptionsFilter } from './common/filters';
+import { LoggingInterceptor } from './common/interceptors';
 import { AuthModule } from './modules/auth';
 import { UsersModule } from './modules/users';
 import { CampusModule } from './modules/campus';
@@ -33,6 +34,7 @@ import {
   mailConfig,
   redisConfig,
   firebaseConfig,
+  loggingConfig,
 } from './config';
 
 @Module({
@@ -48,6 +50,7 @@ import {
         mailConfig,
         redisConfig,
         firebaseConfig,
+        loggingConfig,
       ],
     }),
     CacheModule.registerAsync({
@@ -97,6 +100,10 @@ import {
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
   ],
 })

@@ -30,7 +30,7 @@ export class MessagingGateway
   server: Server;
 
   private readonly logger = new Logger(MessagingGateway.name);
-  private connectedUsers = new Map<string, string>(); // userId -> socketId
+  private connectedUsers = new Map<string, string>();
 
   constructor(
     private jwtService: JwtService,

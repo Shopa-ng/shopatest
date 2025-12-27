@@ -1,15 +1,15 @@
 import {
+  BadRequestException,
+  ConflictException,
   Injectable,
   UnauthorizedException,
-  ConflictException,
-  BadRequestException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma';
-import { RegisterDto, LoginDto, AuthResponseDto } from './dto';
+import { AuthResponseDto, LoginDto, RegisterDto } from './dto';
 import { JwtPayload } from './strategies/jwt.strategy';
 
 @Injectable()
@@ -120,6 +120,55 @@ export class AuthService {
   async logoutAll(userId: string): Promise<void> {
     await this.prisma.refreshToken.deleteMany({
       where: { userId },
+    });
+  }
+
+  async enableBiometric(
+    userId: string,
+    deviceId: string,
+    platform: string,
+  ): Promise<{ biometricToken: string }> {
+    const biometricToken = uuidv4();
+    const hashedToken = await bcrypt.hash(biometricToken, 10);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        biometricToken: hashedToken,
+        biometricDeviceId: deviceId,
+      },
+    });
+
+    return { biometricToken };
+  }
+
+  async biometricLogin(
+    biometricToken: string,
+    deviceId: string,
+  ): Promise<AuthResponseDto> {
+    const user = await this.prisma.user.findFirst({
+      where: { biometricDeviceId: deviceId },
+    });
+
+    if (!user || !user.biometricToken) {
+      throw new UnauthorizedException('Biometric authentication not set up');
+    }
+
+    const isValid = await bcrypt.compare(biometricToken, user.biometricToken);
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid biometric token');
+    }
+
+    return this.generateTokens(user);
+  }
+
+  async disableBiometric(userId: string): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        biometricToken: null,
+        biometricDeviceId: null,
+      },
     });
   }
 

@@ -1,21 +1,28 @@
 import {
-  Controller,
-  Post,
   Body,
+  Controller,
   HttpCode,
   HttpStatus,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
+  ApiBearerAuth,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth,
+  ApiTags,
 } from '@nestjs/swagger';
-import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, RefreshTokenDto, AuthResponseDto } from './dto';
-import { JwtAuthGuard } from './guards';
 import { CurrentUser } from '../../common/decorators';
+import { AuthService } from './auth.service';
+import {
+  AuthResponseDto,
+  BiometricLoginDto,
+  EnableBiometricDto,
+  LoginDto,
+  RefreshTokenDto,
+  RegisterDto,
+} from './dto';
+import { JwtAuthGuard } from './guards';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -90,5 +97,46 @@ export class AuthController {
   ): Promise<{ message: string }> {
     await this.authService.logoutAll(userId);
     return { message: 'All sessions logged out successfully' };
+  }
+
+  @Post('biometric/enable')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Enable biometric authentication for device' })
+  @ApiResponse({ status: 200, description: 'Biometric enabled successfully' })
+  async enableBiometric(
+    @CurrentUser('id') userId: string,
+    @Body() dto: EnableBiometricDto,
+  ): Promise<{ biometricToken: string }> {
+    return this.authService.enableBiometric(userId, dto.deviceId, dto.platform);
+  }
+
+  @Post('biometric/login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login using biometric authentication' })
+  @ApiResponse({
+    status: 200,
+    description: 'Biometric login successful',
+    type: AuthResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Invalid biometric token' })
+  async biometricLogin(
+    @Body() dto: BiometricLoginDto,
+  ): Promise<AuthResponseDto> {
+    return this.authService.biometricLogin(dto.biometricToken, dto.deviceId);
+  }
+
+  @Post('biometric/disable')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Disable biometric authentication' })
+  @ApiResponse({ status: 200, description: 'Biometric disabled successfully' })
+  async disableBiometric(
+    @CurrentUser('id') userId: string,
+  ): Promise<{ message: string }> {
+    await this.authService.disableBiometric(userId);
+    return { message: 'Biometric authentication disabled' };
   }
 }
