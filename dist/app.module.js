@@ -11,6 +11,8 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const core_1 = require("@nestjs/core");
 const throttler_1 = require("@nestjs/throttler");
+const cache_manager_1 = require("@nestjs/cache-manager");
+const cache_manager_redis_yet_1 = require("cache-manager-redis-yet");
 const prisma_1 = require("./prisma");
 const filters_1 = require("./common/filters");
 const auth_1 = require("./modules/auth");
@@ -28,6 +30,7 @@ const upload_1 = require("./shared/upload");
 const categories_1 = require("./modules/categories");
 const analytics_1 = require("./shared/analytics");
 const email_1 = require("./shared/email");
+const push_1 = require("./shared/push");
 const config_2 = require("./config");
 let AppModule = class AppModule {
 };
@@ -44,7 +47,24 @@ exports.AppModule = AppModule = __decorate([
                     config_2.flutterwaveConfig,
                     config_2.cloudinaryConfig,
                     config_2.mailConfig,
+                    config_2.redisConfig,
+                    config_2.firebaseConfig,
                 ],
+            }),
+            cache_manager_1.CacheModule.registerAsync({
+                isGlobal: true,
+                imports: [config_1.ConfigModule],
+                useFactory: async (configService) => ({
+                    store: await (0, cache_manager_redis_yet_1.redisStore)({
+                        socket: {
+                            host: configService.get('redis.host'),
+                            port: configService.get('redis.port'),
+                        },
+                        password: configService.get('redis.password'),
+                        ttl: (configService.get('redis.ttl') || 300) * 1000,
+                    }),
+                }),
+                inject: [config_1.ConfigService],
             }),
             throttler_1.ThrottlerModule.forRoot([
                 {
@@ -68,6 +88,7 @@ exports.AppModule = AppModule = __decorate([
             categories_1.CategoriesModule,
             analytics_1.AnalyticsModule,
             email_1.EmailModule,
+            push_1.PushNotificationModule,
         ],
         providers: [
             {

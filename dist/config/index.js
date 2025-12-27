@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mailConfig = exports.cloudinaryConfig = exports.flutterwaveConfig = exports.paystackConfig = exports.jwtConfig = exports.appConfig = void 0;
+exports.firebaseConfig = exports.redisConfig = exports.mailConfig = exports.cloudinaryConfig = exports.flutterwaveConfig = exports.paystackConfig = exports.jwtConfig = exports.appConfig = void 0;
 var app_config_1 = require("./app.config");
 Object.defineProperty(exports, "appConfig", { enumerable: true, get: function () { return app_config_1.default; } });
 var jwt_config_1 = require("./jwt.config");
@@ -13,4 +13,8 @@ var cloudinary_config_1 = require("./cloudinary.config");
 Object.defineProperty(exports, "cloudinaryConfig", { enumerable: true, get: function () { return cloudinary_config_1.default; } });
 var mail_config_1 = require("./mail.config");
 Object.defineProperty(exports, "mailConfig", { enumerable: true, get: function () { return mail_config_1.default; } });
+var redis_config_1 = require("./redis.config");
+Object.defineProperty(exports, "redisConfig", { enumerable: true, get: function () { return redis_config_1.default; } });
+var firebase_config_1 = require("./firebase.config");
+Object.defineProperty(exports, "firebaseConfig", { enumerable: true, get: function () { return firebase_config_1.default; } });
 //# sourceMappingURL=index.js.map

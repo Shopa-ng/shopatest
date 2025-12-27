@@ -22,8 +22,8 @@ export declare class ProductsService {
         price: Prisma.Decimal;
         stock: number;
         images: string[];
-        vendorId: string;
         categoryId: string | null;
+        vendorId: string;
     }>;
     findAll(query: ProductQueryDto): Promise<{
         data: ({
@@ -45,8 +45,8 @@ export declare class ProductsService {
             price: Prisma.Decimal;
             stock: number;
             images: string[];
-            vendorId: string;
             categoryId: string | null;
+            vendorId: string;
         })[];
         meta: {
             total: number;
@@ -79,9 +79,9 @@ export declare class ProductsService {
             updatedAt: Date;
             rating: number;
             vendorId: string | null;
+            productId: string | null;
             comment: string | null;
             reviewerId: string;
-            productId: string | null;
         })[];
     } & {
         name: string;
@@ -94,8 +94,8 @@ export declare class ProductsService {
         price: Prisma.Decimal;
         stock: number;
         images: string[];
-        vendorId: string;
         categoryId: string | null;
+        vendorId: string;
     }>;
     update(id: string, vendorUserId: string, updateDto: UpdateProductDto): Promise<{
         name: string;
@@ -108,8 +108,8 @@ export declare class ProductsService {
         price: Prisma.Decimal;
         stock: number;
         images: string[];
-        vendorId: string;
         categoryId: string | null;
+        vendorId: string;
     }>;
     delete(id: string, vendorUserId: string): Promise<{
         name: string;
@@ -122,8 +122,8 @@ export declare class ProductsService {
         price: Prisma.Decimal;
         stock: number;
         images: string[];
-        vendorId: string;
         categoryId: string | null;
+        vendorId: string;
     }>;
     getMyProducts(vendorUserId: string, query: ProductQueryDto): Promise<{
         data: ({
@@ -145,8 +145,8 @@ export declare class ProductsService {
             price: Prisma.Decimal;
             stock: number;
             images: string[];
-            vendorId: string;
             categoryId: string | null;
+            vendorId: string;
         })[];
         meta: {
             total: number;

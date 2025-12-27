@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
 
 import { PrismaModule } from './prisma';
 import { AllExceptionsFilter } from './common/filters';
@@ -20,6 +22,7 @@ import { UploadModule } from './shared/upload';
 import { CategoriesModule } from './modules/categories';
 import { AnalyticsModule } from './shared/analytics';
 import { EmailModule } from './shared/email';
+import { PushNotificationModule } from './shared/push';
 
 import {
   appConfig,
@@ -28,6 +31,8 @@ import {
   flutterwaveConfig,
   cloudinaryConfig,
   mailConfig,
+  redisConfig,
+  firebaseConfig,
 } from './config';
 
 @Module({
@@ -41,12 +46,29 @@ import {
         flutterwaveConfig,
         cloudinaryConfig,
         mailConfig,
+        redisConfig,
+        firebaseConfig,
       ],
+    }),
+    CacheModule.registerAsync({
+      isGlobal: true,
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        store: await redisStore({
+          socket: {
+            host: configService.get<string>('redis.host'),
+            port: configService.get<number>('redis.port'),
+          },
+          password: configService.get<string>('redis.password'),
+          ttl: (configService.get<number>('redis.ttl') || 300) * 1000,
+        }),
+      }),
+      inject: [ConfigService],
     }),
     ThrottlerModule.forRoot([
       {
-        ttl: 60000, // 1 minute
-        limit: 100, // 100 requests per minute
+        ttl: 60000,
+        limit: 100,
       },
     ]),
     PrismaModule,
@@ -65,6 +87,7 @@ import {
     CategoriesModule,
     AnalyticsModule,
     EmailModule,
+    PushNotificationModule,
   ],
   providers: [
     {

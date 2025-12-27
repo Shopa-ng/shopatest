@@ -4,3 +4,5 @@ export { default as paystackConfig } from './paystack.config';
 export { default as flutterwaveConfig } from './flutterwave.config';
 export { default as cloudinaryConfig } from './cloudinary.config';
 export { default as mailConfig } from './mail.config';
+export { default as redisConfig } from './redis.config';
+export { default as firebaseConfig } from './firebase.config';
