@@ -1,0 +1,57 @@
+<html>
+  <head>
+    <meta charset='utf-8' />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .header {
+        background: #4f46e5;
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+      .content {
+        padding: 20px;
+      }
+      .button {
+        display: inline-block;
+        background: #4f46e5;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 6px;
+      }
+      .footer {
+        padding: 20px;
+        color: #666;
+        font-size: 12px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class='header'>
+      <h1>Welcome to Shopa! 🎉</h1>
+    </div>
+    <div class='content'>
+      <p>Hi {{firstName}},</p>
+      <p>Thank you for joining the student marketplace. You can now:</p>
+      <ul>
+        <li>Browse products from verified campus vendors</li>
+        <li>Buy items with escrow protection</li>
+        <li>Apply to become a vendor</li>
+      </ul>
+      <p>Get started by exploring products near your campus.</p>
+      <p style='text-align: center;'>
+        <a href='{{frontendUrl}}' class='button'>Start Shopping</a>
+      </p>
+    </div>
+    <div class='footer'>
+      <p>Questions? Reply to this email or contact support.</p>
+      <p>© {{year}} Shopa. All rights reserved.</p>
+    </div>
+  </body>
+</html>

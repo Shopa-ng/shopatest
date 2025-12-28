@@ -90,6 +90,8 @@ model User {
   studentIdUrl       String?
   verificationStatus VerificationStatus @default(PENDING)
   fcmToken           String?
+  biometricToken     String?
+  biometricDeviceId  String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 

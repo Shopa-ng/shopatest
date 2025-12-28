@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; }
+    .header { background: #4F46E5; color: white; padding: 20px; text-align: center; }
+    .content { padding: 20px; }
+    .box { background: #f4f4f5; padding: 16px; border-radius: 8px; margin: 16px 0; }
+    .footer { padding: 20px; color: #666; font-size: 12px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Order Confirmed! ✅</h1>
+  </div>
+  <div class="content">
+    <p>Your order <strong>{{orderNumber}}</strong> has been placed successfully.</p>
+    <div class="box">
+      <p><strong>Vendor:</strong> {{vendorName}}</p>
+      <p><strong>Total:</strong> ₦{{totalAmount}}</p>
+    </div>
+    <p>Your payment is held safely in escrow until you confirm delivery.</p>
+    <p>Track your order in the Shopa app.</p>
+  </div>
+  <div class="footer">
+    <p>© {{year}} Shopa. All rights reserved.</p>
+  </div>
+</body>
+</html>

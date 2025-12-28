@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; }
+    .header { background: #4F46E5; color: white; padding: 20px; text-align: center; }
+    .content { padding: 20px; }
+    .button { display: inline-block; background: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; }
+    .footer { padding: 20px; color: #666; font-size: 12px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Congratulations! 🎉</h1>
+  </div>
+  <div class="content">
+    <p>Your vendor account <strong>{{storeName}}</strong> has been approved.</p>
+    <p>You can now:</p>
+    <ul>
+      <li>List products for sale</li>
+      <li>Receive orders from students</li>
+      <li>Get paid through our escrow system</li>
+    </ul>
+    <p style="text-align: center;">
+      <a href="{{frontendUrl}}/vendor/dashboard" class="button">Go to Dashboard</a>
+    </p>
+  </div>
+  <div class="footer">
+    <p>© {{year}} Shopa. All rights reserved.</p>
+  </div>
+</body>
+</html>
