@@ -8,22 +8,34 @@ import { redisStore } from 'cache-manager-redis-yet';
 import { PrismaModule } from './prisma';
 import { AllExceptionsFilter } from './common/filters';
 import { LoggingInterceptor } from './common/interceptors';
-import { AuthModule } from './modules/auth';
-import { UsersModule } from './modules/users';
-import { CampusModule } from './modules/campus';
-import { VendorsModule } from './modules/vendors';
-import { ProductsModule } from './modules/products';
-import { OrdersModule } from './modules/orders';
-import { PaymentsModule } from './modules/payments';
-import { DisputesModule } from './modules/disputes';
-import { ReviewsModule } from './modules/reviews';
-import { NotificationsModule } from './modules/notifications';
-import { MessagingModule } from './modules/messaging';
-import { UploadModule } from './shared/upload';
-import { CategoriesModule } from './modules/categories';
+
+// Identity Domain
+import { AuthModule } from './modules/identity/auth';
+import { UsersModule } from './modules/identity/users';
+import { VendorsModule } from './modules/identity/vendors';
+
+// Core Domain
+import { ProductsModule } from './modules/core/products';
+import { CategoriesModule } from './modules/core/categories';
+import { OrdersModule } from './modules/core/orders';
+import { ReviewsModule } from './modules/core/reviews';
+import { CampusModule } from './modules/core/campus';
+import { MessagingModule } from './modules/core/messaging';
+
+// Finance Domain
+import { PaymentsModule } from './modules/finance/payments';
+import { DisputesModule } from './modules/finance/disputes';
+
+// Communication Domain
+import { NotificationsModule } from './modules/communication/notifications';
+import { EmailModule } from './modules/communication/email';
+import { PushNotificationModule } from './modules/communication/push';
+
+// Media Domain
+import { UploadModule } from './modules/media/upload';
+
+// Shared
 import { AnalyticsModule } from './shared/analytics';
-import { EmailModule } from './shared/email';
-import { PushNotificationModule } from './shared/push';
 
 import {
   appConfig,
@@ -75,22 +87,28 @@ import {
       },
     ]),
     PrismaModule,
+    // Identity
     AuthModule,
     UsersModule,
-    CampusModule,
     VendorsModule,
+    // Core
     ProductsModule,
+    CategoriesModule,
     OrdersModule,
+    ReviewsModule,
+    CampusModule,
+    MessagingModule,
+    // Finance
     PaymentsModule,
     DisputesModule,
-    ReviewsModule,
+    // Communication
     NotificationsModule,
-    MessagingModule,
-    UploadModule,
-    CategoriesModule,
-    AnalyticsModule,
     EmailModule,
     PushNotificationModule,
+    // Media
+    UploadModule,
+    // Shared
+    AnalyticsModule,
   ],
   providers: [
     {

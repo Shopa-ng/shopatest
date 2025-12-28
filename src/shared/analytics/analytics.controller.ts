@@ -1,9 +1,9 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
-import { CurrentUser, Roles } from '../../common/decorators';
-import { RolesGuard } from '../../common/guards';
-import { JwtAuthGuard } from '../../modules/auth/guards';
+import { CurrentUser, Roles } from 'src/common/decorators';
+import { RolesGuard } from 'src/common/guards';
+import { JwtAuthGuard } from 'src/modules/identity/auth/guards';
 import { AnalyticsService } from './analytics.service';
 
 @ApiTags('Analytics')
