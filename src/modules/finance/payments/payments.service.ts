@@ -53,7 +53,7 @@ export class PaymentsService {
     const reference = `SHOPA-${uuidv4().substring(0, 8).toUpperCase()}`;
 
     // Create payment record
-    const payment = await this.prisma.payment.create({
+    await this.prisma.payment.create({
       data: {
         orderId,
         amount: order.totalAmount,

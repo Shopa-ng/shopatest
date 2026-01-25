@@ -5,7 +5,6 @@ import { MessagingService } from './messaging.service';
 
 describe('MessagingService', () => {
   let service: MessagingService;
-  let prismaService: PrismaService;
 
   const mockUser = { id: 'user-id', firstName: 'John', lastName: 'Doe' };
   const mockConversation = {
@@ -48,7 +47,6 @@ describe('MessagingService', () => {
     }).compile();
 
     service = module.get<MessagingService>(MessagingService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {

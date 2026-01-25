@@ -8,8 +8,6 @@ import { PaymentsService } from './payments.service';
 
 describe('PaymentsService', () => {
   let service: PaymentsService;
-  let prismaService: PrismaService;
-  let configService: ConfigService;
 
   const mockOrder = {
     id: 'order-id',
@@ -76,8 +74,6 @@ describe('PaymentsService', () => {
     }).compile();
 
     service = module.get<PaymentsService>(PaymentsService);
-    prismaService = module.get<PrismaService>(PrismaService);
-    configService = module.get<ConfigService>(ConfigService);
 
     global.fetch = jest.fn();
   });

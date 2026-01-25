@@ -1,11 +1,10 @@
+import { ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { CategoriesService } from './categories.service';
 import { PrismaService } from '../../../prisma';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { CategoriesService } from './categories.service';
 
 describe('CategoriesService', () => {
   let service: CategoriesService;
-  let prismaService: PrismaService;
 
   const mockCategory = {
     id: 'category-id',
@@ -34,7 +33,6 @@ describe('CategoriesService', () => {
     }).compile();
 
     service = module.get<CategoriesService>(CategoriesService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {

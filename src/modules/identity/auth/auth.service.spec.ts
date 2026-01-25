@@ -10,9 +10,7 @@ import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let prismaService: PrismaService;
   let jwtService: JwtService;
-  let emailService: EmailService;
 
   const mockUser = {
     id: 'user-id',
@@ -72,9 +70,8 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    prismaService = module.get<PrismaService>(PrismaService);
+    // prismaService = module.get<PrismaService>(PrismaService);
     jwtService = module.get<JwtService>(JwtService);
-    emailService = module.get<EmailService>(EmailService);
   });
 
   afterEach(() => {

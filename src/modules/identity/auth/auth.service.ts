@@ -64,7 +64,7 @@ export class AuthService {
     const response = await this.generateTokens(user);
 
     // Send welcome email (fire and forget)
-    this.emailService.sendWelcomeEmail(user.email, user.firstName).catch((err) => {
+    this.emailService.sendWelcomeEmail(user.email, user.firstName).catch(() => {
       // Log but don't fail registration if email fails
     });
 
@@ -135,7 +135,6 @@ export class AuthService {
   async enableBiometric(
     userId: string,
     deviceId: string,
-    platform: string,
   ): Promise<{ biometricToken: string }> {
     const biometricToken = uuidv4();
     const hashedToken = await bcrypt.hash(biometricToken, 10);

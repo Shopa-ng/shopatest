@@ -6,7 +6,6 @@ import { OrdersService } from './orders.service';
 
 describe('OrdersService', () => {
   let service: OrdersService;
-  let prismaService: PrismaService;
 
   const mockProduct = {
     id: 'product-id',
@@ -49,7 +48,6 @@ describe('OrdersService', () => {
     }).compile();
 
     service = module.get<OrdersService>(OrdersService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {

@@ -109,7 +109,7 @@ export class AuthController {
     @CurrentUser('id') userId: string,
     @Body() dto: EnableBiometricDto,
   ): Promise<{ biometricToken: string }> {
-    return this.authService.enableBiometric(userId, dto.deviceId, dto.platform);
+    return this.authService.enableBiometric(userId, dto.deviceId);
   }
 
   @Post('biometric/login')

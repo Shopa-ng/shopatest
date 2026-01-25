@@ -6,7 +6,6 @@ import { NotificationType } from '@prisma/client';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
-  let prismaService: PrismaService;
 
   const mockNotification = {
     id: 'notif-id',
@@ -42,7 +41,6 @@ describe('NotificationsService', () => {
     }).compile();
 
     service = module.get<NotificationsService>(NotificationsService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {

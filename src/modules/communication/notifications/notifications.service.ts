@@ -32,7 +32,7 @@ export class NotificationsService {
     });
 
     if (user?.fcmToken) {
-      await this.sendPushNotification(user.fcmToken, title, body, data);
+      await this.sendPushNotification(user.fcmToken, title);
     }
 
     return notification;
@@ -85,12 +85,7 @@ export class NotificationsService {
     return { registered: true };
   }
 
-  private async sendPushNotification(
-    fcmToken: string,
-    title: string,
-    body: string,
-    data?: Record<string, any>,
-  ) {
+  private async sendPushNotification(fcmToken: string, title: string) {
     // Firebase Cloud Messaging implementation
     // This is a placeholder - actual implementation would use firebase-admin
     this.logger.log(`Sending push notification to ${fcmToken}: ${title}`);

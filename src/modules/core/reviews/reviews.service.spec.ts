@@ -5,7 +5,6 @@ import { BadRequestException } from '@nestjs/common';
 
 describe('ReviewsService', () => {
   let service: ReviewsService;
-  let prismaService: PrismaService;
 
   const mockReview = {
     id: 'review-id',
@@ -39,7 +38,6 @@ describe('ReviewsService', () => {
     }).compile();
 
     service = module.get<ReviewsService>(ReviewsService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {

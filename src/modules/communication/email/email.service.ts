@@ -32,7 +32,10 @@ export class EmailService implements OnModuleInit {
     });
     this.from =
       this.configService.get<string>('mail.from') || 'Shopa <noreply@shopa.ng>';
-    this.templatesDir = path.resolve(process.cwd(), 'dist/modules/communication/email/templates');
+    this.templatesDir = path.resolve(
+      process.cwd(),
+      'dist/modules/communication/email/templates',
+    );
   }
 
   onModuleInit() {
@@ -45,7 +48,10 @@ export class EmailService implements OnModuleInit {
       await this.transporter.verify();
       this.logger.log('SMTP connection verified');
     } catch (error) {
-      this.logger.warn('SMTP connection failed - emails will not be sent:', error);
+      this.logger.warn(
+        'SMTP connection failed - emails will not be sent:',
+        error,
+      );
     }
   }
 

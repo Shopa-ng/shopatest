@@ -1,16 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { DisputesService } from './disputes.service';
 import { PrismaService } from '../../../prisma';
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { DisputeStatus, OrderStatus } from '@prisma/client';
 
 describe('DisputesService', () => {
   let service: DisputesService;
-  let prismaService: PrismaService;
 
   const mockOrder = {
     id: 'order-id',
@@ -51,7 +46,6 @@ describe('DisputesService', () => {
     }).compile();
 
     service = module.get<DisputesService>(DisputesService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {

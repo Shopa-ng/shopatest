@@ -6,7 +6,6 @@ import { UserRole, VerificationStatus } from '@prisma/client';
 
 describe('VendorsService', () => {
   let service: VendorsService;
-  let prismaService: PrismaService;
 
   const mockVendor = {
     id: 'vendor-id',
@@ -46,7 +45,6 @@ describe('VendorsService', () => {
     }).compile();
 
     service = module.get<VendorsService>(VendorsService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {

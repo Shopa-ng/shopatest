@@ -1,12 +1,10 @@
+import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProductsService } from './products.service';
 import { PrismaService } from '../../../prisma';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { ProductsService } from './products.service';
 
 describe('ProductsService', () => {
   let service: ProductsService;
-  let prismaService: PrismaService;
 
   const mockProduct = {
     id: 'product-id',
@@ -51,7 +49,6 @@ describe('ProductsService', () => {
     }).compile();
 
     service = module.get<ProductsService>(ProductsService);
-    prismaService = module.get<PrismaService>(PrismaService);
   });
 
   afterEach(() => {
