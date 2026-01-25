@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Resend } from 'resend';
+import * as nodemailer from 'nodemailer';
 import * as Handlebars from 'handlebars';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -15,21 +15,38 @@ export interface EmailOptions {
 @Injectable()
 export class EmailService implements OnModuleInit {
   private readonly logger = new Logger(EmailService.name);
-  private resend: Resend;
+  private transporter: nodemailer.Transporter;
   private from: string;
   private templates: Map<string, Handlebars.TemplateDelegate> = new Map();
   private templatesDir: string;
 
   constructor(private configService: ConfigService) {
-    const apiKey = this.configService.get<string>('mail.resendApiKey');
-    this.resend = new Resend(apiKey);
+    this.transporter = nodemailer.createTransport({
+      host: this.configService.get<string>('mail.host'),
+      port: this.configService.get<number>('mail.port'),
+      secure: this.configService.get<boolean>('mail.secure'),
+      auth: {
+        user: this.configService.get<string>('mail.user'),
+        pass: this.configService.get<string>('mail.pass'),
+      },
+    });
     this.from =
       this.configService.get<string>('mail.from') || 'Shopa <noreply@shopa.ng>';
-    this.templatesDir = path.join(__dirname, 'templates');
+    this.templatesDir = path.resolve(process.cwd(), 'dist/modules/communication/email/templates');
   }
 
   onModuleInit() {
     this.loadTemplates();
+    this.verifyConnection();
+  }
+
+  private async verifyConnection() {
+    try {
+      await this.transporter.verify();
+      this.logger.log('SMTP connection verified');
+    } catch (error) {
+      this.logger.warn('SMTP connection failed - emails will not be sent:', error);
+    }
   }
 
   private loadTemplates() {
@@ -73,19 +90,14 @@ export class EmailService implements OnModuleInit {
     try {
       const html = this.renderTemplate(options.template, options.context);
 
-      const { data, error } = await this.resend.emails.send({
+      const info = await this.transporter.sendMail({
         from: this.from,
-        to: Array.isArray(options.to) ? options.to : [options.to],
+        to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
         subject: options.subject,
         html,
       });
 
-      if (error) {
-        this.logger.error(`Failed to send email: ${error.message}`);
-        return false;
-      }
-
-      this.logger.log(`Email sent: ${data?.id} to ${options.to}`);
+      this.logger.log(`Email sent: ${info.messageId} to ${options.to}`);
       return true;
     } catch (error) {
       this.logger.error(`Email send error:`, error);

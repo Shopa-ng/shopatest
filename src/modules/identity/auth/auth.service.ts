@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from 'src/prisma';
 import { AuthResponseDto, LoginDto, RegisterDto } from './dto';
 import { JwtPayload } from './strategies/jwt.strategy';
+import { EmailService } from 'src/modules/communication/email';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +19,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private emailService: EmailService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
@@ -59,7 +61,14 @@ export class AuthService {
     });
 
     // Generate tokens
-    return this.generateTokens(user);
+    const response = await this.generateTokens(user);
+
+    // Send welcome email (fire and forget)
+    this.emailService.sendWelcomeEmail(user.email, user.firstName).catch((err) => {
+      // Log but don't fail registration if email fails
+    });
+
+    return response;
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
