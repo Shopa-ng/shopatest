@@ -70,11 +70,12 @@ import {
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         store: await redisStore({
+          username: configService.get<string>('redis.username'),
+          password: configService.get<string>('redis.password'),
           socket: {
             host: configService.get<string>('redis.host'),
             port: configService.get<number>('redis.port'),
           },
-          password: configService.get<string>('redis.password'),
           ttl: (configService.get<number>('redis.ttl') || 300) * 1000,
         }),
       }),

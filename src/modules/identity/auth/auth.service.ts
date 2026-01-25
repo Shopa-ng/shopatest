@@ -188,7 +188,7 @@ export class AuthService {
 
     // Generate access token
     const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get<string>('jwt.accessExpiration'),
+      expiresIn: this.configService.get<string>('jwt.accessExpiration') as any,
     });
 
     // Generate refresh token
