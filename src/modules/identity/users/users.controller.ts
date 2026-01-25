@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -24,12 +26,14 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get current user profile' })
   async getMe(@CurrentUser('id') userId: string) {
     return this.usersService.findById(userId);
   }
 
   @Patch('me')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Update current user profile' })
   async updateMe(
     @CurrentUser('id') userId: string,
@@ -39,6 +43,7 @@ export class UsersController {
   }
 
   @Post('upload-student-id')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Upload student ID for verification' })
   async uploadStudentId(
     @CurrentUser('id') userId: string,
@@ -49,6 +54,7 @@ export class UsersController {
 
   // Admin endpoints
   @Get('pending-verifications')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get pending user verifications (Admin only)' })
@@ -57,6 +63,7 @@ export class UsersController {
   }
 
   @Patch(':id/verify')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Verify/reject user (Admin only)' })

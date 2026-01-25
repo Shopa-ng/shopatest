@@ -1,5 +1,7 @@
 import {
   Controller,
+  HttpCode,
+  HttpStatus,
   Post,
   Query,
   UploadedFile,
@@ -27,6 +29,7 @@ export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
   @Post('image')
+  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Upload a single image' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
@@ -54,6 +57,7 @@ export class UploadController {
   }
 
   @Post('images')
+  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Upload multiple images (max 5)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({

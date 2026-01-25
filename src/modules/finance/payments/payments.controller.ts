@@ -4,6 +4,7 @@ import {
   Get,
   Headers,
   HttpCode,
+  HttpStatus,
   Param,
   Post,
   UseGuards,
@@ -33,7 +34,7 @@ export class PaymentsController {
   }
 
   @Post('webhook/paystack')
-  @HttpCode(200)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Paystack webhook handler' })
   async paystackWebhook(
     @Body() body: PaystackWebhookDto,

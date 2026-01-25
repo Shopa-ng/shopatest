@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
   Query,
@@ -26,12 +28,14 @@ export class MessagingController {
   constructor(private readonly messagingService: MessagingService) {}
 
   @Get('conversations')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all conversations for current user' })
   async getConversations(@CurrentUser('id') userId: string) {
     return this.messagingService.getUserConversations(userId);
   }
 
   @Post('conversations')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Create or get existing conversation with a user' })
   async createConversation(
     @CurrentUser('id') userId: string,
@@ -41,6 +45,7 @@ export class MessagingController {
   }
 
   @Get('conversations/:id')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get conversation details' })
   async getConversation(
     @Param('id') id: string,
@@ -50,6 +55,7 @@ export class MessagingController {
   }
 
   @Get('conversations/:id/messages')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get messages in a conversation' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
@@ -68,6 +74,7 @@ export class MessagingController {
   }
 
   @Post('conversations/:id/messages')
+  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Send a message in a conversation' })
   async sendMessage(
     @Param('id') conversationId: string,
@@ -78,6 +85,7 @@ export class MessagingController {
   }
 
   @Post('conversations/:id/read')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Mark all messages in conversation as read' })
   async markAsRead(
     @Param('id') conversationId: string,

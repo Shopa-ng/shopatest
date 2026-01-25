@@ -8,6 +8,8 @@ import {
   Post,
   Query,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
@@ -23,18 +25,21 @@ export class CampusController {
   constructor(private readonly campusService: CampusService) {}
 
   @Get()
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List all campuses' })
   async findAll(@Query('activeOnly') activeOnly?: boolean) {
     return this.campusService.findAll(activeOnly ?? true);
   }
 
   @Get(':id')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get campus by ID' })
   async findById(@Param('id') id: string) {
     return this.campusService.findById(id);
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
@@ -44,6 +49,7 @@ export class CampusController {
   }
 
   @Patch(':id')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
@@ -53,6 +59,7 @@ export class CampusController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()

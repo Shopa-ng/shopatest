@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma';
 import { CreateProductDto, UpdateProductDto, ProductQueryDto } from './dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Prisma } from '@prisma/client';
 
 @Injectable()

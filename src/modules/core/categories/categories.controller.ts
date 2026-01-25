@@ -8,6 +8,8 @@ import {
   Post,
   Query,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
@@ -23,18 +25,21 @@ export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Get()
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all categories' })
   async findAll(@Query('activeOnly') activeOnly?: boolean) {
     return this.categoriesService.findAll(activeOnly ?? true);
   }
 
   @Get(':id')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get category by ID' })
   async findById(@Param('id') id: string) {
     return this.categoriesService.findById(id);
   }
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
@@ -44,6 +49,7 @@ export class CategoriesController {
   }
 
   @Patch(':id')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
@@ -53,6 +59,7 @@ export class CategoriesController {
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()

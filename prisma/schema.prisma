@@ -231,7 +231,7 @@ model Payment {
   id                String        @id @default(uuid())
   amount            Decimal       @db.Decimal(10, 2)
   status            PaymentStatus @default(PENDING)
-  provider          String        @default("paystack") // paystack or flutterwave
+  provider          String        @default("paystack")
   reference         String        @unique
   providerReference String?
   escrowReleaseDate DateTime?

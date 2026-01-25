@@ -1,3 +1,4 @@
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import {
   IsString,
   IsOptional,
@@ -89,12 +90,7 @@ export class UpdateProductDto {
   categoryId?: string;
 }
 
-export class ProductQueryDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  search?: string;
-
+export class ProductQueryDto extends PaginationDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
@@ -109,26 +105,4 @@ export class ProductQueryDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
-
-  @ApiPropertyOptional({ default: 1 })
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  page?: number;
-
-  @ApiPropertyOptional({ default: 20 })
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  limit?: number;
-
-  @ApiPropertyOptional({ default: 'createdAt' })
-  @IsOptional()
-  @IsString()
-  sortBy?: string;
-
-  @ApiPropertyOptional({ default: 'desc' })
-  @IsOptional()
-  @IsString()
-  sortOrder?: 'asc' | 'desc';
 }

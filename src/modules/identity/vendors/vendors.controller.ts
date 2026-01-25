@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -22,6 +24,7 @@ export class VendorsController {
   constructor(private readonly vendorsService: VendorsService) {}
 
   @Get()
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'List all vendors' })
   async findAll(
     @Query('campusId') campusId?: string,
@@ -31,6 +34,7 @@ export class VendorsController {
   }
 
   @Get('me')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get my vendor profile' })
@@ -39,6 +43,7 @@ export class VendorsController {
   }
 
   @Get('pending')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
@@ -48,12 +53,14 @@ export class VendorsController {
   }
 
   @Get(':id')
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get vendor by ID' })
   async findById(@Param('id') id: string) {
     return this.vendorsService.findById(id);
   }
 
   @Post('apply')
+  @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Apply to become a vendor' })
@@ -65,6 +72,7 @@ export class VendorsController {
   }
 
   @Patch('me')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update my vendor profile' })
@@ -76,6 +84,7 @@ export class VendorsController {
   }
 
   @Patch(':id/verify')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()

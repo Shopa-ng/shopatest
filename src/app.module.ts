@@ -49,6 +49,10 @@ import {
   loggingConfig,
 } from './config';
 
+import * as Joi from 'joi';
+
+// ... imports ...
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -64,6 +68,24 @@ import {
         firebaseConfig,
         loggingConfig,
       ],
+      validationSchema: Joi.object({
+        NODE_ENV: Joi.string()
+          .valid('development', 'production', 'test', 'provision')
+          .default('development'),
+        PORT: Joi.number().default(3000),
+        DATABASE_URL: Joi.string().required(),
+        JWT_SECRET: Joi.string().required(),
+        JWT_ACCESS_EXPIRATION: Joi.string().default('15m'),
+        JWT_REFRESH_EXPIRATION: Joi.string().default('7d'),
+        REDIS_HOST: Joi.string().required(),
+        REDIS_PORT: Joi.number().required(),
+        SMTP_HOST: Joi.string().required(),
+        SMTP_PORT: Joi.number().required(),
+        SMTP_USER: Joi.string().required(),
+        SMTP_PASS: Joi.string().required(),
+        SMTP_SECURE: Joi.boolean().default(true),
+        MAIL_FROM: Joi.string().required(),
+      }),
     }),
     CacheModule.registerAsync({
       isGlobal: true,
