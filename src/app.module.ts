@@ -51,8 +51,6 @@ import {
 
 import * as Joi from 'joi';
 
-// ... imports ...
-
 @Module({
   imports: [
     ConfigModule.forRoot({

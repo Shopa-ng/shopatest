@@ -1,4 +1,10 @@
-import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  Length,
+  Matches,
+  IsOptional,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 
@@ -7,10 +13,11 @@ export class RegisterDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'SecurePassword123!' })
+  @ApiProperty({ example: '1234', description: '4-digit PIN' })
   @IsString()
-  @MinLength(8)
-  password: string;
+  @Length(4, 4, { message: 'PIN must be exactly 4 digits' })
+  @Matches(/^[0-9]+$/, { message: 'PIN must contain only numbers' })
+  pin: string;
 
   @ApiProperty({ example: 'John' })
   @IsString()
@@ -36,9 +43,11 @@ export class LoginDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'SecurePassword123!' })
+  @ApiProperty({ example: '1234', description: '4-digit PIN' })
   @IsString()
-  password: string;
+  @Length(4, 4, { message: 'PIN must be exactly 4 digits' })
+  @Matches(/^[0-9]+$/, { message: 'PIN must contain only numbers' })
+  pin: string;
 }
 
 export class RefreshTokenDto {

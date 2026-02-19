@@ -23,8 +23,7 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
-    const { email, password, firstName, lastName, phone, campusId } =
-      registerDto;
+    const { email, pin, firstName, lastName, phone, campusId } = registerDto;
 
     // Check if user exists
     const existingUser = await this.prisma.user.findUnique({
@@ -45,14 +44,14 @@ export class AuthService {
       }
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Hash PIN
+    const hashedPin = await bcrypt.hash(pin, 10);
 
     // Create user
     const user = await this.prisma.user.create({
       data: {
         email,
-        password: hashedPassword,
+        password: hashedPin,
         firstName,
         lastName,
         phone,
@@ -72,7 +71,7 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
-    const { email, password } = loginDto;
+    const { email, pin } = loginDto;
 
     // Find user
     const user = await this.prisma.user.findUnique({
@@ -83,9 +82,9 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
+    // Verify PIN
+    const isPinValid = await bcrypt.compare(pin, user.password);
+    if (!isPinValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
