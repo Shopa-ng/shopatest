@@ -13,7 +13,7 @@ export class DisputesService {
   constructor(private prisma: PrismaService) {}
 
   async create(userId: string, createDto: CreateDisputeDto) {
-    const { orderId, reason, description } = createDto;
+    const { orderId, reason, description, accountDetails, proofUrls } = createDto;
 
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
@@ -24,27 +24,21 @@ export class DisputesService {
       throw new NotFoundException('Order not found');
     }
 
-    // Check if user is buyer or vendor
     if (order.buyerId !== userId && order.vendor.userId !== userId) {
-      throw new ForbiddenException(
-        'You cannot create a dispute for this order',
-      );
+      throw new ForbiddenException('You cannot create a dispute for this order');
     }
 
-    // Check if order is in a valid state for dispute
     const validStatuses: OrderStatus[] = [
       OrderStatus.PAID,
       OrderStatus.CONFIRMED,
       OrderStatus.SHIPPED,
       OrderStatus.DELIVERED,
     ];
+
     if (!validStatuses.includes(order.status)) {
-      throw new BadRequestException(
-        'Cannot create dispute for this order status',
-      );
+      throw new BadRequestException('Cannot create dispute for this order status');
     }
 
-    // Check if dispute already exists
     const existingDispute = await this.prisma.dispute.findFirst({
       where: {
         orderId,
@@ -53,9 +47,7 @@ export class DisputesService {
     });
 
     if (existingDispute) {
-      throw new BadRequestException(
-        'An active dispute already exists for this order',
-      );
+      throw new BadRequestException('An active dispute already exists for this order');
     }
 
     return this.prisma.dispute.create({
@@ -64,6 +56,8 @@ export class DisputesService {
         raisedById: userId,
         reason,
         description,
+        accountDetails,
+        proofUrls: proofUrls ?? [],
       },
       include: {
         order: { select: { orderNumber: true } },
@@ -110,19 +104,12 @@ export class DisputesService {
               include: { product: { select: { name: true, images: true } } },
             },
             buyer: {
-              select: {
-                firstName: true,
-                lastName: true,
-                email: true,
-                phone: true,
-              },
+              select: { firstName: true, lastName: true, email: true, phone: true },
             },
             vendor: {
               select: {
                 storeName: true,
-                user: {
-                  select: { firstName: true, lastName: true, email: true },
-                },
+                user: { select: { firstName: true, lastName: true, email: true } },
               },
             },
             payment: { select: { status: true, amount: true } },
@@ -141,9 +128,7 @@ export class DisputesService {
   }
 
   async resolve(id: string, adminId: string, resolveDto: ResolveDisputeDto) {
-    const dispute = await this.prisma.dispute.findUnique({
-      where: { id },
-    });
+    const dispute = await this.prisma.dispute.findUnique({ where: { id } });
 
     if (!dispute) {
       throw new NotFoundException('Dispute not found');

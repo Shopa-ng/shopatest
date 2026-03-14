@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUUID, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsUUID, IsEnum, IsArray } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DisputeStatus } from '@prisma/client';
 
@@ -17,6 +17,22 @@ export class CreateDisputeDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({
+    example: '0123456789, Access Bank, John Doe',
+  })
+  @IsOptional()
+  @IsString()
+  accountDetails?: string;
+
+  @ApiPropertyOptional({
+    example: ['https://cloudinary.com/proof1.jpg'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  proofUrls?: string[];
 }
 
 export class ResolveDisputeDto {

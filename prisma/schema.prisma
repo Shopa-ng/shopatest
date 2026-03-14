@@ -63,16 +63,15 @@ enum NotificationType {
 // ============================================
 
 model Campus {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  code      String   @unique
+  id        String    @id @default(uuid())
+  name      String    @unique
+  code      String    @unique
   location  String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  users    User[]
-  products Product[]
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  users     User[]
+  products  Product[]
 
   @@map("campuses")
 }
@@ -99,9 +98,9 @@ model User {
   campus   Campus? @relation(fields: [campusId], references: [id])
 
   vendor              Vendor?
-  ordersAsBuyer       Order[]              @relation("BuyerOrders")
-  disputesRaised      Dispute[]            @relation("DisputeRaisedBy")
-  disputesResolved    Dispute[]            @relation("DisputeResolvedBy")
+  ordersAsBuyer       Order[]                @relation("BuyerOrders")
+  disputesRaised      Dispute[]              @relation("DisputeRaisedBy")
+  disputesResolved    Dispute[]              @relation("DisputeResolvedBy")
   reviews             Review[]
   messagesSent        Message[]
   notifications       Notification[]
@@ -134,9 +133,8 @@ model Vendor {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
+  userId   String    @unique
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   products Product[]
   orders   Order[]
   reviews  Review[]  @relation("VendorReviews")
@@ -145,15 +143,14 @@ model Vendor {
 }
 
 model Category {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String    @id @default(uuid())
+  name        String    @unique
   description String?
   icon        String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  products Product[]
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
 
   @@map("categories")
 }
@@ -169,12 +166,10 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  vendorId String
-  vendor   Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
-
-  campusId String
-  campus   Campus @relation(fields: [campusId], references: [id])
-
+  vendorId   String
+  vendor     Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  campusId   String
+  campus     Campus    @relation(fields: [campusId], references: [id])
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
 
@@ -188,19 +183,18 @@ model Product {
 }
 
 model Order {
-  id              String      @id @default(uuid())
-  orderNumber     String      @unique @default(uuid())
-  status          OrderStatus @default(PENDING)
-  totalAmount     Decimal     @db.Decimal(10, 2)
+  id             String      @id @default(uuid())
+  orderNumber    String      @unique @default(uuid())
+  status         OrderStatus @default(PENDING)
+  totalAmount    Decimal     @db.Decimal(10, 2)
   deliveryAddress String?
-  deliveryMethod  String?
-  notes           String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  deliveryMethod String?
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
-  buyerId String
-  buyer   User   @relation("BuyerOrders", fields: [buyerId], references: [id])
-
+  buyerId  String
+  buyer    User   @relation("BuyerOrders", fields: [buyerId], references: [id])
   vendorId String
   vendor   Vendor @relation(fields: [vendorId], references: [id])
 
@@ -219,9 +213,8 @@ model OrderItem {
   price     Decimal  @db.Decimal(10, 2)
   createdAt DateTime @default(now())
 
-  orderId String
-  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId String
   product   Product @relation(fields: [productId], references: [id])
 
@@ -229,38 +222,38 @@ model OrderItem {
 }
 
 model Payment {
-  id                String        @id @default(uuid())
-  amount            Decimal       @db.Decimal(10, 2)
-  status            PaymentStatus @default(PENDING)
-  provider          String        @default("paystack") // paystack or flutterwave
-  reference         String        @unique
-  providerReference String?
-  escrowReleaseDate DateTime?
-  metadata          Json?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                  String        @id @default(uuid())
+  amount              Decimal       @db.Decimal(10, 2)
+  status              PaymentStatus @default(PENDING)
+  provider            String        @default("paystack") // paystack or flutterwave
+  reference           String        @unique
+  providerReference   String?
+  escrowReleaseDate   DateTime?
+  metadata            Json?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
-  orderId String @unique
-  order   Order  @relation(fields: [orderId], references: [id])
+  orderId String  @unique
+  order   Order   @relation(fields: [orderId], references: [id])
 
   @@map("payments")
 }
 
 model Dispute {
-  id          String        @id @default(uuid())
-  reason      String
-  description String?
-  status      DisputeStatus @default(OPEN)
-  resolution  String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id             String        @id @default(uuid())
+  reason         String
+  description    String?
+  accountDetails String?
+  proofUrls      String[]      @default([])
+  status         DisputeStatus @default(OPEN)
+  resolution     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
-  orderId String
-  order   Order  @relation(fields: [orderId], references: [id])
-
-  raisedById String
-  raisedBy   User   @relation("DisputeRaisedBy", fields: [raisedById], references: [id])
-
+  orderId      String
+  order        Order   @relation(fields: [orderId], references: [id])
+  raisedById   String
+  raisedBy     User    @relation("DisputeRaisedBy", fields: [raisedById], references: [id])
   resolvedById String?
   resolvedBy   User?   @relation("DisputeResolvedBy", fields: [resolvedById], references: [id])
 
@@ -285,9 +278,8 @@ model ConversationMember {
 
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
   @@map("conversation_members")
@@ -301,9 +293,8 @@ model Message {
 
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  senderId String
-  sender   User   @relation(fields: [senderId], references: [id])
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id])
 
   @@index([conversationId])
   @@map("messages")
@@ -317,13 +308,11 @@ model Review {
   updatedAt DateTime @updatedAt
 
   reviewerId String
-  reviewer   User   @relation(fields: [reviewerId], references: [id])
-
-  productId String?
-  product   Product? @relation(fields: [productId], references: [id])
-
-  vendorId String?
-  vendor   Vendor? @relation("VendorReviews", fields: [vendorId], references: [id])
+  reviewer   User    @relation(fields: [reviewerId], references: [id])
+  productId  String?
+  product    Product? @relation(fields: [productId], references: [id])
+  vendorId   String?
+  vendor     Vendor?  @relation("VendorReviews", fields: [vendorId], references: [id])
 
   @@map("reviews")
 }
