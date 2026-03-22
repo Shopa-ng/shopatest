@@ -40,6 +40,7 @@ import { AnalyticsModule } from './shared/analytics';
 import {
   appConfig,
   jwtConfig,
+  googleConfig,
   paystackConfig,
   flutterwaveConfig,
   cloudinaryConfig,
@@ -56,6 +57,7 @@ import {
       load: [
         appConfig,
         jwtConfig,
+        googleConfig,
         paystackConfig,
         flutterwaveConfig,
         cloudinaryConfig,
@@ -70,12 +72,12 @@ import {
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         store: await redisStore({
-  socket: {
-    host: configService.get<string>('redis.host'),
-    port: configService.get<number>('redis.port'),
-    tls: configService.get<boolean>('redis.tls'),
-  },
-  password: configService.get<string>('redis.password'),
+          socket: {
+            host: configService.get<string>('redis.host'),
+            port: configService.get<number>('redis.port'),
+            tls: configService.get<boolean>('redis.tls'),
+          },
+          password: configService.get<string>('redis.password'),
           ttl: (configService.get<number>('redis.ttl') || 300) * 1000,
         }),
       }),

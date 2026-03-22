@@ -1,9 +1,12 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -22,7 +25,7 @@ import {
   RefreshTokenDto,
   RegisterDto,
 } from './dto';
-import { JwtAuthGuard } from './guards';
+import { GoogleAuthGuard, JwtAuthGuard } from './guards';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -138,5 +141,24 @@ export class AuthController {
   ): Promise<{ message: string }> {
     await this.authService.disableBiometric(userId);
     return { message: 'Biometric authentication disabled' };
+  }
+
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: 'Initiate Google OAuth login' })
+  async googleAuth() {
+    // Guard automatically redirects to Google
+  }
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  async googleAuthCallback(@Req() req: any, @Res() res: any) {
+    const result = await this.authService.generateTokensForOAuth(req.user);
+    const { accessToken, refreshToken } = result;
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    return res.redirect(
+      `${frontendUrl}/auth/google/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`,
+    );
   }
 }

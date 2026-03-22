@@ -84,6 +84,51 @@ export class AuthService {
     return this.generateTokens(user);
   }
 
+  async googleLogin(profile: {
+    googleId: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+  }): Promise<AuthResponseDto> {
+    const { googleId, email, firstName, lastName, avatar } = profile;
+
+    // Check if user exists by googleId or email
+    let user = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ googleId }, { email }],
+      },
+    });
+
+    if (user) {
+      // Update googleId and avatar if not already set
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          googleId: user.googleId ?? googleId,
+          avatar: user.avatar ?? avatar,
+        },
+      });
+    } else {
+      // Create new user
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          firstName,
+          lastName,
+          avatar,
+          googleId,
+          password: '',
+          isEmailVerified: true,
+          verificationStatus: 'APPROVED',
+          isVerified: true,
+        },
+      });
+    }
+
+    return this.generateTokens(user);
+  }
+
   async refreshToken(refreshToken: string): Promise<AuthResponseDto> {
     // Find refresh token
     const storedToken = await this.prisma.refreshToken.findUnique({
