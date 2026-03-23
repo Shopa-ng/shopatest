@@ -1,3 +1,4 @@
+import { EmailService } from 'src/modules/communication/email';
 import {
   BadRequestException,
   ConflictException,
@@ -18,13 +19,13 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private configService: ConfigService,
+    private emailService: EmailService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     const { email, password, firstName, lastName, phone, campusId } =
       registerDto;
 
-    // Check if user exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -33,7 +34,6 @@ export class AuthService {
       throw new ConflictException('User with this email already exists');
     }
 
-    // Validate campus if provided
     if (campusId) {
       const campus = await this.prisma.campus.findUnique({
         where: { id: campusId },
@@ -43,10 +43,8 @@ export class AuthService {
       }
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
     const user = await this.prisma.user.create({
       data: {
         email,
@@ -120,6 +118,82 @@ export class AuthService {
     }
 
     return this.generateTokens(user);
+  }
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    // Always return success to prevent email enumeration
+    if (!user) {
+      return { message: 'If that email exists, a reset link has been sent' };
+    }
+
+    // Invalidate any existing reset tokens
+    // @ts-ignore
+    await this.prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id },
+    });
+
+    // Create new reset token
+    const token = uuidv4();
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    // @ts-ignore
+    await this.prisma.passwordResetToken.create({
+      data: { token, userId: user.id, expiresAt },
+    });
+
+    await this.emailService.sendPasswordReset(user.email, token);
+
+    return { message: 'If that email exists, a reset link has been sent' };
+  }
+
+  async resetPassword(
+    token: string,
+    password: string,
+  ): Promise<{ message: string }> {
+    // @ts-ignore
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: { token },
+      include: { user: true },
+    });
+
+    if (!resetToken) {
+      throw new UnauthorizedException('Invalid or expired reset token');
+    }
+
+    if (resetToken.used) {
+      throw new UnauthorizedException('Reset token has already been used');
+    }
+
+    if (resetToken.expiresAt < new Date()) {
+      // @ts-ignore
+      await this.prisma.passwordResetToken.delete({
+        where: { id: resetToken.id },
+      });
+      throw new UnauthorizedException('Reset token has expired');
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await this.prisma.user.update({
+      where: { id: resetToken.userId },
+      data: { password: hashedPassword },
+    });
+
+    // @ts-ignore
+    await this.prisma.passwordResetToken.update({
+      where: { id: resetToken.id },
+      data: { used: true },
+    });
+
+    // Invalidate all refresh tokens for security
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId: resetToken.userId },
+    });
+
+    return { message: 'Password reset successfully' };
   }
 
   async generateTokensForOAuth(user: {
