@@ -58,14 +58,12 @@ export class AuthService {
       },
     });
 
-    // Generate tokens
     return this.generateTokens(user);
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     const { email, password } = loginDto;
 
-    // Find user
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -74,13 +72,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Generate tokens
     return this.generateTokens(user);
   }
 
@@ -93,7 +89,6 @@ export class AuthService {
   }): Promise<AuthResponseDto> {
     const { googleId, email, firstName, lastName, avatar } = profile;
 
-    // Check if user exists by googleId or email
     let user = await this.prisma.user.findFirst({
       where: {
         OR: [{ googleId }, { email }],
@@ -101,7 +96,6 @@ export class AuthService {
     });
 
     if (user) {
-      // Update googleId and avatar if not already set
       user = await this.prisma.user.update({
         where: { id: user.id },
         data: {
@@ -110,7 +104,6 @@ export class AuthService {
         },
       });
     } else {
-      // Create new user
       user = await this.prisma.user.create({
         data: {
           email,
@@ -129,8 +122,18 @@ export class AuthService {
     return this.generateTokens(user);
   }
 
+  async generateTokensForOAuth(user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    isVerified: boolean;
+  }): Promise<AuthResponseDto> {
+    return this.generateTokens(user);
+  }
+
   async refreshToken(refreshToken: string): Promise<AuthResponseDto> {
-    // Find refresh token
     const storedToken = await this.prisma.refreshToken.findUnique({
       where: { token: refreshToken },
       include: { user: true },
@@ -140,16 +143,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    // Check if token is expired
     if (storedToken.expiresAt < new Date()) {
       await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
       throw new UnauthorizedException('Refresh token expired');
     }
 
-    // Delete old refresh token
     await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
 
-    // Generate new tokens
     return this.generateTokens(storedToken.user);
   }
 
@@ -231,19 +231,16 @@ export class AuthService {
       role: user.role,
     };
 
-    // Generate access token
     const accessToken = this.jwtService.sign(payload, {
       expiresIn: this.configService.get<string>('jwt.accessExpiration'),
     });
 
-    // Generate refresh token
     const refreshToken = uuidv4();
     const refreshExpiration =
       this.configService.get<string>('jwt.refreshExpiration') || '7d';
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + parseInt(refreshExpiration));
 
-    // Store refresh token
     await this.prisma.refreshToken.create({
       data: {
         token: refreshToken,

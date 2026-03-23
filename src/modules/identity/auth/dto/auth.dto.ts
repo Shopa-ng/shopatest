@@ -70,3 +70,19 @@ export class AuthResponseDto {
     isVerified: boolean;
   };
 }
+export class ForgotPasswordDto {
+  @ApiProperty({ example: 'john@university.edu.ng' })
+  @IsEmail()
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty()
+  @IsString()
+  token: string;
+
+  @ApiProperty({ example: 'NewPassword123!' })
+  @IsString()
+  @MinLength(8)
+  password: string;
+}
