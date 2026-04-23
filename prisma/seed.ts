@@ -21,12 +21,13 @@ async function main() {
 
   // ─── Categories ───────────────────────────────────────────────────────────
   const categoryData = [
-    { name: 'Food & Drinks', description: 'Meals, snacks, beverages and more', icon: '🍔' },
-    { name: 'Fashion & Clothing', description: 'Clothes, shoes, accessories', icon: '👗' },
-    { name: 'Electronics & Gadgets', description: 'Phones, laptops, accessories', icon: '📱' },
-    { name: 'Books & Stationery', description: 'Textbooks, notebooks, pens', icon: '📚' },
-    { name: 'Beauty & Personal Care', description: 'Skincare, haircare, grooming', icon: '💄' },
-    { name: 'Services', description: 'Tutoring, printing, laundry and more', icon: '🛠️' },
+    { name: 'Clothing & Accessories', description: 'Clothes, shoes, accessories', icon: '👗' },
+    { name: 'Body care & Beauty', description: 'Skincare, haircare, grooming', icon: '💄' },
+    { name: 'Provisions', description: 'Meals, snacks, beverages and more', icon: '🍔' },
+    { name: 'Sports', description: 'Sporting goods and equipment', icon: '⚽' },
+    { name: 'Gadgets & Accessories', description: 'Phones, laptops, accessories', icon: '📱' },
+    { name: 'Stationery', description: 'Textbooks, notebooks, pens', icon: '📚' },
+    { name: 'Others', description: 'Everything else', icon: '📦' },
   ];
 
   const categories = await Promise.all(
@@ -109,9 +110,9 @@ async function main() {
   console.log(`✅ Customer: ${customer.email}`);
 
   // ─── Products ─────────────────────────────────────────────────────────────
-  const foodCategory = categories.find((c) => c.name === 'Food & Drinks')!;
-  const electronicsCategory = categories.find((c) => c.name === 'Electronics & Gadgets')!;
-  const fashionCategory = categories.find((c) => c.name === 'Fashion & Clothing')!;
+  const foodCategory = categories.find((c) => c.name === 'Provisions')!;
+  const electronicsCategory = categories.find((c) => c.name === 'Gadgets & Accessories')!;
+  const fashionCategory = categories.find((c) => c.name === 'Clothing & Accessories')!;
 
   const productsData = [
     {

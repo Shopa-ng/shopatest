@@ -49,3 +49,9 @@ export class UpdateOrderStatusDto {
   @ApiProperty({ enum: OrderStatus })
   status: OrderStatus;
 }
+
+export class RejectOrderDto {
+  @ApiProperty({ example: 'Item is currently out of stock' })
+  @IsString()
+  reason: string;
+}

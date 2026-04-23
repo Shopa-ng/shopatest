@@ -44,3 +44,8 @@ export class ResolveDisputeDto {
   @IsString()
   resolution: string;
 }
+export class RespondToDisputeDto {
+  @ApiProperty({ example: 'The item was delivered in perfect condition' })
+  @IsString()
+  response: string;
+}

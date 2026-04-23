@@ -129,7 +129,6 @@ export class AuthService {
     }
 
     // Invalidate any existing reset tokens
-    // @ts-ignore
     await this.prisma.passwordResetToken.deleteMany({
       where: { userId: user.id },
     });
@@ -139,7 +138,6 @@ export class AuthService {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1);
 
-    // @ts-ignore
     await this.prisma.passwordResetToken.create({
       data: { token, userId: user.id, expiresAt },
     });
@@ -153,7 +151,6 @@ export class AuthService {
     token: string,
     password: string,
   ): Promise<{ message: string }> {
-    // @ts-ignore
     const resetToken = await this.prisma.passwordResetToken.findUnique({
       where: { token },
       include: { user: true },
@@ -168,7 +165,6 @@ export class AuthService {
     }
 
     if (resetToken.expiresAt < new Date()) {
-      // @ts-ignore
       await this.prisma.passwordResetToken.delete({
         where: { id: resetToken.id },
       });
@@ -182,7 +178,6 @@ export class AuthService {
       data: { password: hashedPassword },
     });
 
-    // @ts-ignore
     await this.prisma.passwordResetToken.update({
       where: { id: resetToken.id },
       data: { used: true },

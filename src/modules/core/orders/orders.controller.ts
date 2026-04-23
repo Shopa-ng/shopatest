@@ -14,6 +14,7 @@ import { JwtAuthGuard } from 'src/modules/identity/auth/guards';
 import { RolesGuard } from 'src/common/guards';
 import { CurrentUser, Roles } from 'src/common/decorators';
 import { UserRole } from '@prisma/client';
+import { RejectOrderDto } from './dto/order.dto';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -51,6 +52,29 @@ export class OrdersController {
     return this.ordersService.create(userId, createDto);
   }
 
+  @Post(':id/accept')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.VENDOR)
+  @ApiOperation({ summary: 'Accept an order (Vendor)' })
+  async acceptOrder(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.ordersService.acceptOrder(id, userId);
+  }
+
+  @Post(':id/reject')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.VENDOR)
+  @ApiOperation({ summary: 'Reject an order (Vendor)' })
+  async rejectOrder(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @Body() dto: RejectOrderDto,
+  ) {
+    return this.ordersService.rejectOrder(id, userId, dto.reason);
+  }
+
   @Patch(':id/status')
   @UseGuards(RolesGuard)
   @Roles(UserRole.VENDOR)
@@ -71,4 +95,4 @@ export class OrdersController {
   ) {
     return this.ordersService.confirmDelivery(id, userId);
   }
-}
+} 

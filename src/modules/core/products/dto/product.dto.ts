@@ -2,38 +2,37 @@ import {
   IsString,
   IsOptional,
   IsNumber,
+  IsEnum,
   IsArray,
   IsBoolean,
+  IsInt,
   Min,
-  IsUUID,
-} from 'class-validator';
+}  from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { SaleType } from '@prisma/client';
 import { Type } from 'class-transformer';
 
 export class CreateProductDto {
-  @ApiProperty({ example: 'Wireless Earbuds' })
+  @ApiProperty({ example: 'Jollof Rice & Chicken' })
   @IsString()
   name: string;
 
-  @ApiPropertyOptional({
-    example: 'High-quality wireless earbuds with noise cancellation',
-  })
+  @ApiPropertyOptional({ example: 'Delicious Nigerian jollof rice' })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiProperty({ example: 15000 })
+  @ApiProperty({ example: 1500 })
   @IsNumber()
   @Min(0)
   @Type(() => Number)
   price: number;
 
-  @ApiPropertyOptional({ example: 50 })
-  @IsOptional()
-  @IsNumber()
+  @ApiProperty({ example: 50 })
+  @IsInt()
   @Min(0)
   @Type(() => Number)
-  stock?: number;
+  stock: number;
 
   @ApiPropertyOptional({ example: ['https://cloudinary.com/image1.jpg'] })
   @IsOptional()
@@ -41,10 +40,72 @@ export class CreateProductDto {
   @IsString({ each: true })
   images?: string[];
 
+  @ApiPropertyOptional({ example: 'category-uuid' })
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
+  @ApiPropertyOptional({ example: 'subcategory-uuid' })
+  @IsOptional()
+  @IsString()
+  subCategoryId?: string;
+
+  @ApiProperty({ enum: SaleType, example: SaleType.IN_STOCK })
+  @IsEnum(SaleType)
+  saleType: SaleType;
+
+  @ApiPropertyOptional({ example: 7 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  maxPreorderDays?: number;
+}
+
+export class ProductQueryDto {
+  @ApiPropertyOptional({ example: 'jollof rice' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @IsString()
+  campusId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  vendorId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
   categoryId?: string;
+
+  @ApiPropertyOptional({ example: 1 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  page?: number;
+
+  @ApiPropertyOptional({ example: 20 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  limit?: number;
+
+  @ApiPropertyOptional({ example: 'createdAt' })
+  @IsOptional()
+  @IsString()
+  sortBy?: string;
+
+  @ApiPropertyOptional({ example: 'desc' })
+  @IsOptional()
+  @IsString()
+  sortOrder?: 'asc' | 'desc';
 }
 
 export class UpdateProductDto {
@@ -67,7 +128,7 @@ export class UpdateProductDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsNumber()
+  @IsInt()
   @Min(0)
   @Type(() => Number)
   stock?: number;
@@ -80,55 +141,28 @@ export class UpdateProductDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsString()
+  categoryId?: string;
+ 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  subCategoryId?: string;
+
+  @ApiPropertyOptional({ enum: SaleType })
+  @IsOptional()
+  @IsEnum(SaleType)
+  saleType?: SaleType;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  maxPreorderDays?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  categoryId?: string;
-}
-
-export class ProductQueryDto {
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  search?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  campusId?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  vendorId?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  categoryId?: string;
-
-  @ApiPropertyOptional({ default: 1 })
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  page?: number;
-
-  @ApiPropertyOptional({ default: 20 })
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  limit?: number;
-
-  @ApiPropertyOptional({ default: 'createdAt' })
-  @IsOptional()
-  @IsString()
-  sortBy?: string;
-
-  @ApiPropertyOptional({ default: 'desc' })
-  @IsOptional()
-  @IsString()
-  sortOrder?: 'asc' | 'desc';
-}
+} 
