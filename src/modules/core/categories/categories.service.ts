@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto';
+import { IsString } from 'class-validator';
 
 @Injectable()
 export class CategoriesService {
@@ -31,6 +32,11 @@ export class CategoriesService {
         _count: {
           select: { products: true },
         },
+        // @ts-ignore
+        subCategories: {
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' },
+        },
       },
       orderBy: { name: 'asc' },
     });
@@ -42,6 +48,11 @@ export class CategoriesService {
       include: {
         _count: {
           select: { products: true },
+        },
+        // @ts-ignore
+        subCategories: {
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' },
         },
       },
     });
@@ -59,7 +70,6 @@ export class CategoriesService {
       throw new NotFoundException('Category not found');
     }
 
-    // Check for name conflict
     if (updateDto.name && updateDto.name !== category.name) {
       const existing = await this.prisma.category.findUnique({
         where: { name: updateDto.name },
@@ -81,10 +91,57 @@ export class CategoriesService {
       throw new NotFoundException('Category not found');
     }
 
-    // Soft delete
     return this.prisma.category.update({
       where: { id },
       data: { isActive: false },
     });
+  }
+
+  // ─── SubCategories ────────────────────────────────────────────────────────────
+
+  async getSubCategories(categoryId: string) {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+    if (!category) throw new NotFoundException('Category not found');
+
+    // @ts-ignore
+    return this.prisma.subCategory.findMany({
+      where: { categoryId },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async createSubCategory(categoryId: string, name: string) {
+    const category = await this.prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+    if (!category) throw new NotFoundException('Category not found');
+
+    // @ts-ignore
+    const existing = await this.prisma.subCategory.findFirst({
+      where: { categoryId, name },
+    });
+    if (existing) {
+      throw new ConflictException(
+        'Subcategory with this name already exists in this category',
+      );
+    }
+
+    // @ts-ignore
+    return this.prisma.subCategory.create({
+      data: { name, categoryId },
+    });
+  }
+
+  async deleteSubCategory(id: string) {
+    // @ts-ignore
+    const subCategory = await this.prisma.subCategory.findUnique({
+      where: { id },
+    });
+    if (!subCategory) throw new NotFoundException('Subcategory not found');
+
+    // @ts-ignore
+    return this.prisma.subCategory.delete({ where: { id } });
   }
 }

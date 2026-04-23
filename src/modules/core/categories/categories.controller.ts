@@ -11,11 +11,19 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
+import { IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { Roles } from 'src/common/decorators';
 import { RolesGuard } from 'src/common/guards';
 import { JwtAuthGuard } from 'src/modules/identity/auth/guards';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto';
+
+class CreateSubCategoryDto {
+  @ApiProperty({ example: 'Nigerian Food' })
+  @IsString()
+  name: string;
+}
 
 @ApiTags('Categories')
 @Controller('categories')
@@ -59,5 +67,34 @@ export class CategoriesController {
   @ApiOperation({ summary: 'Delete category (Admin only)' })
   async delete(@Param('id') id: string) {
     return this.categoriesService.delete(id);
+  }
+
+  // ─── SubCategories ────────────────────────────────────────────────────────────
+
+  @Get(':id/subcategories')
+  @ApiOperation({ summary: 'Get subcategories for a category' })
+  async getSubCategories(@Param('id') id: string) {
+    return this.categoriesService.getSubCategories(id);
+  }
+
+  @Post(':id/subcategories')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create subcategory (Admin only)' })
+  async createSubCategory(
+    @Param('id') id: string,
+    @Body() dto: CreateSubCategoryDto,
+  ) {
+    return this.categoriesService.createSubCategory(id, dto.name);
+  }
+
+  @Delete('subcategories/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete subcategory (Admin only)' })
+  async deleteSubCategory(@Param('id') id: string) {
+    return this.categoriesService.deleteSubCategory(id);
   }
 }
