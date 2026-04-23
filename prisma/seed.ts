@@ -21,13 +21,13 @@ async function main() {
 
   // ─── Categories ───────────────────────────────────────────────────────────
   const categoryData = [
-    { name: 'Clothing & Accessories', description: 'Clothes, shoes, accessories', icon: '👗' },
-    { name: 'Body care & Beauty', description: 'Skincare, haircare, grooming', icon: '💄' },
-    { name: 'Provisions', description: 'Meals, snacks, beverages and more', icon: '🍔' },
-    { name: 'Sports', description: 'Sporting goods and equipment', icon: '⚽' },
-    { name: 'Gadgets & Accessories', description: 'Phones, laptops, accessories', icon: '📱' },
-    { name: 'Stationery', description: 'Textbooks, notebooks, pens', icon: '📚' },
-    { name: 'Others', description: 'Everything else', icon: '📦' },
+    { name: 'Clothing & Accessories', description: 'Clothes, shoes, accessories and fashion', icon: '👗' },
+{ name: 'Body care & Beauty', description: 'Skincare, haircare, makeup and fragrances', icon: '💄' },
+{ name: 'Gadgets & Accessories', description: 'Phones, laptops, earphones and accessories', icon: '📱' },
+{ name: 'Provisions', description: 'Cereal, beverages, snacks and confectioneries', icon: '🛒' },
+{ name: 'Sports', description: 'Sports equipment, sportswear and accessories', icon: '⚽' },
+{ name: 'Stationery', description: 'Books, school supplies and stationery', icon: '📓' },
+{ name: 'Others', description: 'Everything else', icon: '🛍️' },
   ];
 
   const categories = await Promise.all(
