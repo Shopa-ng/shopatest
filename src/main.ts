@@ -11,9 +11,16 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: configService.get<string>('app.frontendUrl'),
-    credentials: true,
-  });
+  origin: [
+    configService.get<string>('app.frontendUrl') as string,
+    'http://localhost:3000',
+    'https://shopshopa.com.ng',
+    'https://vendor.shopshopa.com.ng',
+    'https://uadmin.shopshopa.com.ng',
+    'https://sadmin.shopshopa.com.ng',
+  ],
+  credentials: true,
+});
 
   // Global validation pipe
   app.useGlobalPipes(
@@ -54,7 +61,7 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = configService.get<number>('app.port') || 9000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   console.log(`🚀 Shopa API is running on: http://localhost:${port}`);
   console.log(
