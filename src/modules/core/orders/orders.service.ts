@@ -5,12 +5,18 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma';
+import { EmailService } from '../../communication/email';
+import { PushNotificationService } from '../../communication/push';
 import { CreateOrderDto, UpdateOrderStatusDto } from './dto';
 import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class OrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService,
+    private pushService: PushNotificationService,
+  ) {}
 
   async findByBuyer(userId: string) {
     return this.prisma.order.findMany({
@@ -95,7 +101,7 @@ export class OrdersService {
       return sum + Number(product.price) * item.quantity;
     }, 0);
 
-    return this.prisma.order.create({
+    const order = await this.prisma.order.create({
       data: {
         buyerId: userId,
         vendorId: vendorIds[0],
@@ -115,9 +121,16 @@ export class OrdersService {
         orderItems: {
           include: { product: { select: { name: true, price: true } } },
         },
-        vendor: { select: { storeName: true } },
+        vendor: { select: { storeName: true, userId: true } },
       },
     });
+
+    // Notify vendor of new order via push
+    this.pushService
+      .notifyNewOrder(order.vendor.userId, order.orderNumber)
+      .catch(() => null);
+
+    return order;
   }
 
   async acceptOrder(id: string, userId: string) {
@@ -127,10 +140,22 @@ export class OrdersService {
       throw new BadRequestException('Only paid orders can be accepted');
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id },
       data: { status: OrderStatus.CONFIRMED },
     });
+
+    // Notify buyer via push
+    this.pushService
+      .notifyOrderStatusChange(order.buyerId, order.orderNumber, 'CONFIRMED')
+      .catch(() => null);
+
+    // Notify buyer via email
+    this.emailService
+      .sendOrderStatusUpdate(order.buyerId, order.orderNumber, 'CONFIRMED')
+      .catch(() => null);
+
+    return updated;
   }
 
   async rejectOrder(id: string, userId: string, reason: string) {
@@ -140,10 +165,17 @@ export class OrdersService {
       throw new BadRequestException('Order cannot be rejected at this stage');
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id },
       data: { status: OrderStatus.CANCELLED, rejectionReason: reason },
     });
+
+    // Notify buyer via push
+    this.pushService
+      .notifyOrderStatusChange(order.buyerId, order.orderNumber, 'CANCELLED')
+      .catch(() => null);
+
+    return updated;
   }
 
   async updateStatus(id: string, userId: string, updateDto: UpdateOrderStatusDto) {
@@ -163,17 +195,33 @@ export class OrdersService {
 
     const data: any = { status: updateDto.status };
 
+    // Set 24-hour dispute window when order is marked as DELIVERED
     if (updateDto.status === OrderStatus.DELIVERED) {
       const window = new Date();
       window.setHours(window.getHours() + 24);
       data.disputeWindowExpiresAt = window;
     }
 
-    return this.prisma.order.update({ where: { id }, data });
+    const updated = await this.prisma.order.update({ where: { id }, data });
+
+    // Notify buyer of status change via push
+    this.pushService
+      .notifyOrderStatusChange(order.buyerId, order.orderNumber, updateDto.status)
+      .catch(() => null);
+
+    // Notify buyer via email
+    this.emailService
+      .sendOrderStatusUpdate(order.buyerId, order.orderNumber, updateDto.status)
+      .catch(() => null);
+
+    return updated;
   }
 
   async confirmDelivery(id: string, userId: string) {
-    const order = await this.prisma.order.findUnique({ where: { id } });
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: { vendor: { select: { userId: true } } },
+    });
 
     if (!order) throw new NotFoundException('Order not found');
     if (order.buyerId !== userId) throw new ForbiddenException('Only the buyer can confirm delivery');
@@ -181,20 +229,30 @@ export class OrdersService {
       throw new BadRequestException('Order has not been marked as delivered yet');
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id },
       data: { status: OrderStatus.COMPLETED },
     });
+
+    // Notify vendor that payment will be released
+    this.pushService
+      .notifyPaymentReceived(order.vendor.userId, Number(order.totalAmount))
+      .catch(() => null);
+
+    return updated;
   }
 
   private async getVendorOrder(id: string, userId: string) {
     const vendor = await this.prisma.vendor.findUnique({ where: { userId } });
     if (!vendor) throw new ForbiddenException('Vendor profile not found');
 
-    const order = await this.prisma.order.findUnique({ where: { id } });
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: { buyer: { select: { email: true } } },
+    });
     if (!order) throw new NotFoundException('Order not found');
     if (order.vendorId !== vendor.id) throw new ForbiddenException('Access denied');
 
     return order;
   }
-}
+} 
