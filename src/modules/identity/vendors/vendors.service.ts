@@ -478,12 +478,12 @@ export class VendorsService {
           dto.status === 'APPROVED'
             ? '✅ Withdrawal Request Approved'
             : 'Withdrawal Request Update',
-        template: 'dispute-update',
-        context: {
-          status: dto.status,
-          amount: Number(withdrawal.amount).toLocaleString(),
-          resolution: dto.note ?? '',
-        },
+        template: 'withdrawal-update',
+context: {
+  approved: dto.status === 'APPROVED',
+  amount: Number(withdrawal.amount).toLocaleString(),
+  resolution: dto.note ?? '',
+},
       })
       .catch(() => null);
 

@@ -3,22 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Order Confirmed</title>
+  <title>Withdrawal Request Update</title>
   <style>
     body { margin: 0; padding: 0; background-color: #f5f5f5; font-family: 'Plus Jakarta Sans', Arial, sans-serif; }
     .wrapper { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     .header { background-color: #2E7D32; padding: 40px 32px; text-align: center; }
     .header h1 { color: #FDC500; font-size: 36px; font-weight: 700; margin: 0; letter-spacing: -1px; }
-    .badge { display: inline-block; background-color: #FDC500; color: #151515; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 13px; margin-top: 12px; }
+    .header p { color: #ffffff; margin: 8px 0 0; font-size: 14px; opacity: 0.9; }
     .body { padding: 40px 32px; }
     .body h2 { color: #151515; font-size: 22px; font-weight: 700; margin: 0 0 8px; }
     .body p { color: #555555; font-size: 15px; line-height: 1.6; margin: 0 0 16px; }
+    .status-approved { display: inline-block; background-color: #e8f5e9; color: #2E7D32; padding: 8px 20px; border-radius: 20px; font-weight: 700; font-size: 14px; margin: 8px 0 16px; }
+    .status-rejected { display: inline-block; background-color: #ffebee; color: #c62828; padding: 8px 20px; border-radius: 20px; font-weight: 700; font-size: 14px; margin: 8px 0 16px; }
     .info-box { background-color: #f9f9f9; border-radius: 8px; padding: 20px; margin: 20px 0; }
     .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eaeaea; }
     .info-row:last-child { border-bottom: none; }
     .info-label { color: #9b9b9b; font-size: 13px; }
     .info-value { color: #151515; font-size: 13px; font-weight: 600; }
-    .btn { display: inline-block; background-color: #2E7D32; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; margin: 8px 0 24px; }
+    .note-box { background-color: #fff8e1; border-left: 4px solid #FDC500; border-radius: 4px; padding: 14px 18px; margin: 20px 0; }
+    .note-box p { color: #7a5c00; font-size: 13px; margin: 0; }
+    .btn { display: inline-block; background-color: #2E7D32; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; margin: 16px 0 24px; }
     .footer { background-color: #f9f9f9; padding: 24px 32px; text-align: center; }
     .footer p { color: #9b9b9b; font-size: 12px; margin: 0; line-height: 1.6; }
   </style>
@@ -27,27 +31,29 @@
   <div class="wrapper">
     <div class="header">
       <h1>Shopa</h1>
-      <div class="badge">✓ Order Confirmed</div>
+      <p>Withdrawal Update</p>
     </div>
     <div class="body">
-      <h2>Your order is confirmed!</h2>
-      <p>Great news! Your order has been placed successfully. The vendor will process it shortly.</p>
+      <h2>Your withdrawal request has been updated</h2>
+      {{#if approved}}
+      <div class="status-approved">✓ Approved</div>
+      <p>Great news! Your withdrawal request has been approved. The funds will be transferred to your account shortly.</p>
+      {{else}}
+      <div class="status-rejected">✗ Rejected</div>
+      <p>Unfortunately, your withdrawal request was not approved at this time.</p>
+      {{/if}}
       <div class="info-box">
         <div class="info-row">
-          <span class="info-label">Order Number</span>
-          <span class="info-value">{{orderNumber}}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Vendor</span>
-          <span class="info-value">{{vendorName}}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Total Amount</span>
-          <span class="info-value">₦{{totalAmount}}</span>
+          <span class="info-label">Amount Requested</span>
+          <span class="info-value">₦{{amount}}</span>
         </div>
       </div>
-      <p>Your payment is held securely in escrow and will only be released to the vendor once you confirm delivery.</p>
-      <a href="{{frontendUrl}}/orders" class="btn">Track Your Order</a>
+      {{#if resolution}}
+      <div class="note-box">
+        <p><strong>Note from admin:</strong> {{resolution}}</p>
+      </div>
+      {{/if}}
+      <a href="{{frontendUrl}}/vendor/withdrawals" class="btn">View Withdrawal History</a>
     </div>
     <div class="footer">
       <p>© {{year}} Shopa. All rights reserved.<br/>Crawford University Campus Marketplace</p>
