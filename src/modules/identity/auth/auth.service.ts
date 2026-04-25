@@ -61,7 +61,62 @@ export class AuthService {
       user.firstName,
     ).catch(() => null);
     return this.generateTokens(user);
+  }// ADD THIS METHOD to auth.service.ts after the register() method
+
+async createAdmin(dto: {
+  email: string;
+  firstName: string;
+  lastName: string;
+  campusId: string;
+  password: string;
+}): Promise<{ message: string; email: string }> {
+  const existing = await this.prisma.user.findUnique({
+    where: { email: dto.email },
+  });
+  if (existing) {
+    throw new ConflictException('An account with this email already exists');
   }
+
+  const campus = await this.prisma.campus.findUnique({
+    where: { id: dto.campusId },
+  });
+  if (!campus) {
+    throw new BadRequestException('Invalid campus selected');
+  }
+
+  const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+  const user = await this.prisma.user.create({
+    data: {
+      email: dto.email,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      password: hashedPassword,
+      campusId: dto.campusId,
+      role: 'ADMIN' as any,
+      isVerified: true,
+      isEmailVerified: true,
+      verificationStatus: 'APPROVED',
+    },
+  });
+
+  // Send welcome email to new admin
+  this.emailService.sendEmail({
+    to: user.email,
+    subject: 'Your Shopa Admin Account Has Been Created',
+    template: 'welcome',
+    context: {
+      firstName: user.firstName,
+      customMessage: `You have been assigned as a university admin for ${campus.name} on Shopa. Log in at uadmin.shopshopa.com.ng with your email and the password provided to you.`,
+    },
+  }).catch(() => null);
+
+  return {
+    message: 'Admin account created successfully',
+    email: user.email,
+  };
+}
+
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     const { email, password } = loginDto;

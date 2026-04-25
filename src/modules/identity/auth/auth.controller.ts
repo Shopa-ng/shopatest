@@ -15,7 +15,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser } from 'src/common/decorators';
+import { IsString, IsEmail } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { CurrentUser, Roles } from 'src/common/decorators';
+import { RolesGuard } from 'src/common/guards';
 import { AuthService } from './auth.service';
 import {
   AuthResponseDto,
@@ -28,6 +31,28 @@ import {
   ResetPasswordDto,
 } from './dto';
 import { GoogleAuthGuard, JwtAuthGuard } from './guards';
+
+class CreateAdminDto {
+  @ApiProperty({ example: 'admin@university.edu.ng' })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({ example: 'John' })
+  @IsString()
+  firstName: string;
+
+  @ApiProperty({ example: 'Doe' })
+  @IsString()
+  lastName: string;
+
+  @ApiProperty({ example: 'campus-uuid' })
+  @IsString()
+  campusId: string;
+
+  @ApiProperty({ example: 'Admin@1234' })
+  @IsString()
+  password: string;
+}
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -44,6 +69,18 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'User already exists' })
   async register(@Body() registerDto: RegisterDto): Promise<AuthResponseDto> {
     return this.authService.register(registerDto);
+  }
+
+  @Post('admin/create')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN' as any)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create a university admin account (Super Admin only)' })
+  @ApiResponse({ status: 201, description: 'Admin account created successfully' })
+  async createAdmin(
+    @Body() dto: CreateAdminDto,
+  ): Promise<{ message: string; email: string }> {
+    return this.authService.createAdmin(dto);
   }
 
   @Post('login')
