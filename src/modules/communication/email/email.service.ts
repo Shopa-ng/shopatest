@@ -24,8 +24,10 @@ export class EmailService implements OnModuleInit {
     const apiKey = this.configService.get<string>('mail.resendApiKey');
     this.resend = new Resend(apiKey);
     this.from =
-      this.configService.get<string>('mail.from') || 'Shopa <noreply@shopa.ng>';
+      this.configService.get<string>('mail.from') || 'Shopa <noreply@contact.shopshopa.com.ng>';
     this.templatesDir = path.join(__dirname, 'templates');
+    this.logger.log(`EmailService initialized with from: ${this.from}`);
+    this.logger.log(`Resend API key present: ${!!apiKey}`);
   }
 
   onModuleInit() {
@@ -38,8 +40,10 @@ export class EmailService implements OnModuleInit {
       'order-confirmation',
       'order-status',
       'vendor-approved',
+      'vendor-rejected',
       'dispute-update',
       'password-reset',
+      'withdrawal-update',
     ];
 
     for (const name of templateFiles) {
@@ -71,6 +75,8 @@ export class EmailService implements OnModuleInit {
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     try {
+      this.logger.log(`Attempting to send email to ${options.to} with template ${options.template} from ${this.from}`);
+
       const html = this.renderTemplate(options.template, options.context);
 
       const { data, error } = await this.resend.emails.send({
@@ -81,19 +87,18 @@ export class EmailService implements OnModuleInit {
       });
 
       if (error) {
-        this.logger.error(`Failed to send email: ${error.message}`);
+        this.logger.error(`Resend error for ${options.to}: ${JSON.stringify(error)}`);
         return false;
       }
 
-      this.logger.log(`Email sent: ${data?.id} to ${options.to}`);
+      this.logger.log(`Email sent successfully: ${data?.id} to ${options.to}`);
       return true;
     } catch (error) {
-      this.logger.error(`Email send error:`, error);
+      this.logger.error(`Email exception for ${options.to}: ${JSON.stringify(error)}`);
       return false;
     }
   }
 
-  // Pre-built email methods
   async sendWelcomeEmail(to: string, firstName: string): Promise<boolean> {
     return this.sendEmail({
       to,
@@ -129,8 +134,7 @@ export class EmailService implements OnModuleInit {
     const statusMessages: Record<string, string> = {
       CONFIRMED: 'Your order has been confirmed by the vendor.',
       SHIPPED: 'Your order is on its way!',
-      DELIVERED:
-        'Your order has been marked as delivered. Please confirm receipt.',
+      DELIVERED: 'Your order has been marked as delivered. Please confirm receipt.',
       COMPLETED: 'Order completed. Thank you for shopping with Shopa!',
       CANCELLED: 'Your order has been cancelled.',
     };
@@ -147,12 +151,21 @@ export class EmailService implements OnModuleInit {
     });
   }
 
-  async sendVendorApproved(to: string, storeName: string): Promise<boolean> {
+  async sendVendorApproved(to: string, storeName: string, loginUrl?: string): Promise<boolean> {
     return this.sendEmail({
       to,
       subject: 'Your Vendor Account is Approved! 🎉',
       template: 'vendor-approved',
-      context: { storeName },
+      context: { storeName, loginUrl: loginUrl || `${this.configService.get('app.frontendUrl')}/login` },
+    });
+  }
+
+  async sendVendorRejected(to: string, storeName: string, reason?: string): Promise<boolean> {
+    return this.sendEmail({
+      to,
+      subject: 'Shopa Vendor Application Update',
+      template: 'vendor-rejected',
+      context: { storeName, reason },
     });
   }
 
@@ -172,12 +185,29 @@ export class EmailService implements OnModuleInit {
 
   async sendPasswordReset(to: string, resetToken: string): Promise<boolean> {
     const resetUrl = `${this.configService.get('app.frontendUrl')}/reset-password?token=${resetToken}`;
-
     return this.sendEmail({
       to,
       subject: 'Reset Your Password',
       template: 'password-reset',
       context: { resetUrl },
+    });
+  }
+
+  async sendWithdrawalUpdate(
+    to: string,
+    amount: number,
+    approved: boolean,
+    note?: string,
+  ): Promise<boolean> {
+    return this.sendEmail({
+      to,
+      subject: approved ? '✅ Withdrawal Request Approved' : 'Withdrawal Request Update',
+      template: 'withdrawal-update',
+      context: {
+        approved,
+        amount: amount.toLocaleString(),
+        resolution: note,
+      },
     });
   }
 }
