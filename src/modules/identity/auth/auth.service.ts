@@ -55,7 +55,11 @@ export class AuthService {
         campusId,
       },
     });
-
+    // Send welcome email (fire and forget)
+    this.emailService.sendWelcomeEmail(
+      user.email,
+      user.firstName,
+    ).catch(() => null);
     return this.generateTokens(user);
   }
 
