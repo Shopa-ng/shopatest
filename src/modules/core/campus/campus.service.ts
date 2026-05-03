@@ -28,9 +28,9 @@ export class CampusService {
     });
   }
 
-  async findAll(activeOnly = true) {
+  async findAll(includeInactive = false) {
     const campuses = await this.prisma.campus.findMany({
-      where: activeOnly ? { isActive: true } : undefined,
+      where: includeInactive ? undefined : { isActive: true },
       orderBy: { name: 'asc' },
       include: {
         _count: {

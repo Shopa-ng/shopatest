@@ -26,6 +26,7 @@ export class UsersService {
             id: true,
             name: true,
             code: true,
+            isActive: true,
           },
         },
         vendor: {
@@ -43,7 +44,12 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    return user;
+    const { campus, ...rest } = user;
+    return {
+      ...rest,
+      campus,
+      campusSuspended: campus ? !campus.isActive : false,
+    };
   }
 
   async updateProfile(id: string, updateDto: UpdateUserDto) {

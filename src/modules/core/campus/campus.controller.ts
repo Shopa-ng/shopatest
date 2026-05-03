@@ -24,8 +24,8 @@ export class CampusController {
 
   @Get()
   @ApiOperation({ summary: 'List all campuses' })
-  async findAll(@Query('activeOnly') activeOnly?: boolean) {
-    return this.campusService.findAll(activeOnly ?? true);
+  async findAll(@Query('includeInactive') includeInactive?: string) {
+    return this.campusService.findAll(includeInactive === 'true');
   }
 
   @Get(':id')
