@@ -123,7 +123,7 @@ export class VendorsService {
   // ─── Get All Vendors ──────────────────────────────────────────────────────────
 
   async findAll(campusId?: string) {
-    return this.prisma.vendor.findMany({
+    const vendors = await this.prisma.vendor.findMany({
       where: {
         ...(campusId && { user: { campusId } }),
       },
@@ -146,12 +146,16 @@ export class VendorsService {
         },
         user: {
           select: {
-            campusId: true,
             campus: { select: { id: true, name: true } },
           },
         },
       },
     });
+
+    return vendors.map(({ user, ...vendor }) => ({
+      ...vendor,
+      campus: user?.campus ?? null,
+    }));
   }
 
   // ─── Get Vendor by ID ─────────────────────────────────────────────────────────
