@@ -125,8 +125,6 @@ export class VendorsService {
   async findAll(campusId?: string) {
     return this.prisma.vendor.findMany({
       where: {
-        status: 'APPROVED',
-        verificationStatus: 'APPROVED',
         ...(campusId && { user: { campusId } }),
       },
       select: {
@@ -138,13 +136,19 @@ export class VendorsService {
         totalSales: true,
         saleType: true,
         itemsSold: true,
+        status: true,
+        verificationStatus: true,
+        createdAt: true,
         vendorCategories: {
           select: {
             category: { select: { id: true, name: true, icon: true } },
           },
         },
         user: {
-          select: { campusId: true, campus: { select: { name: true } } },
+          select: {
+            campusId: true,
+            campus: { select: { id: true, name: true } },
+          },
         },
       },
     });
