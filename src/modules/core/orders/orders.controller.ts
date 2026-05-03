@@ -24,7 +24,7 @@ import { RejectOrderDto } from './dto/order.dto';
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  @Get('all')
+  @Get()
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN' as any)
   @ApiOperation({ summary: 'Get all orders platform-wide (Super Admin)' })
