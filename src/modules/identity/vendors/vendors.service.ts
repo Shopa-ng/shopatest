@@ -169,12 +169,23 @@ export class VendorsService {
         },
         products: {
           where: { isActive: true },
+          select: { id: true, name: true, price: true, stock: true },
           take: 20,
         },
       },
     });
     if (!vendor) throw new NotFoundException('Vendor not found');
-    return vendor;
+
+    const { vendorCategories, matricNumber, studentIdUrl, ...rest } = vendor;
+    return {
+      ...rest,
+      user: {
+        ...vendor.user,
+        matricNumber,
+        studentIdUrl,
+      },
+      categories: vendorCategories.map((vc) => vc.category),
+    };
   }
 
   // ─── Get Current Vendor Profile ───────────────────────────────────────────────
@@ -228,25 +239,42 @@ export class VendorsService {
   // ─── Get Pending Vendors (Admin) ──────────────────────────────────────────────
 
   async getPendingVendors(campusId?: string) {
-    return this.prisma.vendor.findMany({
+    const vendors = await this.prisma.vendor.findMany({
       where: {
         status: 'PENDING',
         ...(campusId && { user: { campusId } }),
       },
       include: {
-        vendorCategories: { include: { category: true } },
+        vendorCategories: {
+          include: { category: { select: { id: true, name: true } } },
+        },
         user: {
           select: {
-            email: true,
             firstName: true,
             lastName: true,
+            email: true,
+            phone: true,
             campusId: true,
             campus: true,
           },
         },
+        products: {
+          where: { isActive: true },
+          select: { id: true, name: true, price: true, stock: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return vendors.map(({ vendorCategories, matricNumber, studentIdUrl, ...rest }) => ({
+      ...rest,
+      user: {
+        ...rest.user,
+        matricNumber,
+        studentIdUrl,
+      },
+      categories: vendorCategories.map((vc) => vc.category),
+    }));
   }
 
   // ─── Approve/Reject Vendor (Admin) ────────────────────────────────────────────
