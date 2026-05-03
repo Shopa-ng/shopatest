@@ -177,6 +177,9 @@ model Vendor {
   totalSales         Int                @default(0)
   availableBalance   Decimal            @default(0) @db.Decimal(10, 2)
   totalWithdrawn     Decimal            @default(0) @db.Decimal(10, 2)
+  bankName           String?
+  accountNumber      String?
+  accountName        String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
@@ -274,6 +277,7 @@ model Order {
   deliveryMethod          String?
   notes                   String?
   rejectionReason         String?
+  refundStatus            String?
   disputeWindowExpiresAt  DateTime?
   createdAt               DateTime    @default(now())
   updatedAt               DateTime    @updatedAt

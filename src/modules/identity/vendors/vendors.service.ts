@@ -188,7 +188,7 @@ export class VendorsService {
     });
     if (!vendor) throw new NotFoundException('Vendor not found');
 
-    const { vendorCategories, matricNumber, studentIdUrl, ...rest } = vendor;
+    const { vendorCategories, matricNumber, studentIdUrl, bankName, accountNumber, accountName, ...rest } = vendor;
     return {
       ...rest,
       user: {
@@ -197,6 +197,7 @@ export class VendorsService {
         studentIdUrl,
       },
       categories: vendorCategories.map((vc) => vc.category),
+      bankAccount: bankName ? { bankName, accountNumber, accountName } : null,
     };
   }
 
@@ -223,7 +224,12 @@ export class VendorsService {
       },
     });
     if (!vendor) throw new NotFoundException('Vendor profile not found');
-    return vendor;
+
+    const { bankName, accountNumber, accountName, ...rest } = vendor;
+    return {
+      ...rest,
+      bankAccount: bankName ? { bankName, accountNumber, accountName } : null,
+    };
   }
 
   // ─── Update Vendor Profile ────────────────────────────────────────────────────
@@ -243,6 +249,11 @@ export class VendorsService {
         ...(dto.saleType && { saleType: dto.saleType }),
         ...(dto.maxPreorderDays !== undefined && {
           maxPreorderDays: dto.maxPreorderDays,
+        }),
+        ...(dto.bankAccount && {
+          bankName: dto.bankAccount.bankName,
+          accountNumber: dto.bankAccount.accountNumber,
+          accountName: dto.bankAccount.accountName,
         }),
       },
     });

@@ -9,10 +9,25 @@ import {
   Max,
   ArrayMinSize,
   IsPhoneNumber,
+  ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { SaleType, VerificationStatus, VendorStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
+
+export class BankAccountDto {
+  @ApiProperty({ example: 'First Bank' })
+  @IsString()
+  bankName: string;
+
+  @ApiProperty({ example: '0123456789' })
+  @IsString()
+  accountNumber: string;
+
+  @ApiProperty({ example: 'John Doe' })
+  @IsString()
+  accountName: string;
+}
 
 export class RegisterVendorDto {
   @ApiProperty({ example: 'John' })
@@ -132,6 +147,12 @@ export class UpdateVendorDto {
   @Max(30)
   @Type(() => Number)
   maxPreorderDays?: number;
+
+  @ApiPropertyOptional({ type: BankAccountDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => BankAccountDto)
+  bankAccount?: BankAccountDto;
 }
 
 export class VerifyVendorDto {

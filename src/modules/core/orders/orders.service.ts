@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../../../prisma';
 import { EmailService } from '../../communication/email';
 import { PushNotificationService } from '../../communication/push';
+import { PaymentsService } from '../../finance/payments';
 import { CreateOrderDto, UpdateOrderStatusDto } from './dto';
 import { OrderStatus } from '@prisma/client';
 
@@ -16,6 +17,7 @@ export class OrdersService {
     private prisma: PrismaService,
     private emailService: EmailService,
     private pushService: PushNotificationService,
+    private paymentsService: PaymentsService,
   ) {}
 
   async findAll() {
@@ -167,7 +169,16 @@ export class OrdersService {
     const order = await this.getVendorOrder(id, userId);
 
     if (order.status !== OrderStatus.PAID) {
-      throw new BadRequestException('Only paid orders can be accepted');
+      // Fallback: sync payment status from Paystack before rejecting
+      if (order.payment?.reference) {
+        await this.paymentsService.verifyPayment(order.payment.reference);
+        const refreshed = await this.prisma.order.findUnique({ where: { id }, select: { status: true } });
+        if (refreshed?.status !== OrderStatus.PAID) {
+          throw new BadRequestException('Only paid orders can be accepted');
+        }
+      } else {
+        throw new BadRequestException('Only paid orders can be accepted');
+      }
     }
 
     const updated = await this.prisma.order.update({
@@ -195,14 +206,36 @@ export class OrdersService {
       throw new BadRequestException('Order cannot be rejected at this stage');
     }
 
+    const refundStatus = order.status === OrderStatus.PAID ? 'PENDING_REFUND' : null;
+
     const updated = await this.prisma.order.update({
       where: { id },
-      data: { status: OrderStatus.CANCELLED, rejectionReason: reason },
+      data: {
+        status: OrderStatus.CANCELLED,
+        rejectionReason: reason,
+        ...(refundStatus && { refundStatus }),
+      },
     });
 
     // Notify buyer via push
     this.pushService
       .notifyOrderStatusChange(order.buyerId, order.orderNumber, 'CANCELLED')
+      .catch(() => null);
+
+    // Email buyer with decline notice and refund info
+    this.emailService
+      .sendEmail({
+        to: order.buyer.email,
+        subject: 'Your Shopa order was declined',
+        template: 'order-status',
+        context: {
+          firstName: order.buyer.firstName,
+          orderNumber: order.orderNumber,
+          storeName: order.vendor.storeName,
+          status: 'DECLINED',
+          statusMessage: `Hi ${order.buyer.firstName}, your order #${order.orderNumber} from ${order.vendor.storeName} was declined. ${refundStatus ? 'Your payment will be refunded within 3–5 business days.' : ''}`,
+        },
+      })
       .catch(() => null);
 
     return updated;
@@ -278,7 +311,11 @@ export class OrdersService {
 
     const order = await this.prisma.order.findUnique({
       where: { id },
-      include: { buyer: { select: { email: true } } },
+      include: {
+        buyer: { select: { email: true, firstName: true } },
+        payment: { select: { reference: true } },
+        vendor: { select: { storeName: true } },
+      },
     });
     if (!order) throw new NotFoundException('Order not found');
     if (order.vendorId !== vendor.id) throw new ForbiddenException('Access denied');
