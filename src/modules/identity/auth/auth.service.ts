@@ -2,6 +2,7 @@ import { EmailService } from 'src/modules/communication/email';
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -132,6 +133,25 @@ async createAdmin(dto: {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.role === 'VENDOR') {
+      const vendor = await this.prisma.vendor.findUnique({
+        where: { userId: user.id },
+        select: { verificationStatus: true },
+      });
+
+      if (vendor?.verificationStatus === 'PENDING') {
+        throw new ForbiddenException(
+          'Your vendor application is pending approval. You will be notified once it has been reviewed.',
+        );
+      }
+
+      if (vendor?.verificationStatus === 'REJECTED') {
+        throw new ForbiddenException(
+          'Your vendor application was not approved. Please contact support.',
+        );
+      }
     }
 
     return this.generateTokens(user);
