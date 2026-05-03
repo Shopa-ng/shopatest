@@ -41,6 +41,7 @@ export class EmailService implements OnModuleInit {
       'order-status',
       'vendor-approved',
       'vendor-rejected',
+      'vendor-pending',
       'dispute-update',
       'password-reset',
       'withdrawal-update',

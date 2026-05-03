@@ -32,12 +32,13 @@
     </div>
     <div class="body">
       <h2>Your vendor application was not approved</h2>
-      <p>Thank you for applying to become a vendor on Shopa. Unfortunately, your application for <strong>{{storeName}}</strong> was not approved at this time.</p>
+      <p>Hi {{firstName}}, unfortunately your vendor application for <strong>{{storeName}}</strong> was not approved.</p>
       {{#if reason}}
       <div class="reason-box">
         <p><strong>Reason:</strong> {{reason}}</p>
       </div>
       {{/if}}
+      <p>If you have questions, please contact support.</p>
       <div class="next-steps">
         <h3>What you can do next:</h3>
         <div class="step">

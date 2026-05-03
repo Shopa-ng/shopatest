@@ -100,28 +100,18 @@ export class VendorsService {
       return { user, vendor };
     });
 
-    // Notify campus admins about new vendor registration
-    const admins = await this.prisma.user.findMany({
-      where: { role: 'ADMIN', campusId: dto.campusId },
-      select: { email: true, firstName: true },
-    });
-
-    // Send notification to admins (fire and forget)
-    admins.forEach((admin) => {
-      this.emailService
-        .sendEmail({
-          to: admin.email,
-          subject: 'New Vendor Registration — Action Required',
-          template: 'vendor-approved',
-          context: {
-            adminName: admin.firstName,
-            vendorName: `${dto.firstName} ${dto.lastName}`,
-            storeName: dto.storeName,
-            dashboardUrl: `${process.env.FRONTEND_URL}/admin/vendors`,
-          },
-        })
-        .catch(() => null);
-    });
+    // Send pending-approval email to the vendor
+    this.emailService
+      .sendEmail({
+        to: dto.email,
+        subject: 'Your Shopa vendor application has been received',
+        template: 'vendor-pending',
+        context: {
+          firstName: dto.firstName,
+          storeName: dto.storeName,
+        },
+      })
+      .catch(() => null);
 
     return {
       message:
@@ -167,16 +157,14 @@ export class VendorsService {
       where: { id },
       include: {
         vendorCategories: {
-          include: { category: true },
+          include: { category: { select: { id: true, name: true } } },
         },
         user: {
           select: {
-            id: true,
-            email: true,
             firstName: true,
             lastName: true,
-            campusId: true,
-            campus: true,
+            email: true,
+            phone: true,
           },
         },
         products: {
@@ -281,30 +269,33 @@ export class VendorsService {
     });
 
     // Send email notification to vendor
-    const subject =
-      status === 'APPROVED'
-        ? '🎉 Your Shopa Vendor Account is Approved!'
-        : 'Shopa Vendor Application Update';
-
-    const emailContext =
-      status === 'APPROVED'
-        ? {
+    if (status === 'APPROVED') {
+      this.emailService
+        .sendEmail({
+          to: vendor.user.email,
+          subject: 'Your Shopa vendor application has been approved!',
+          template: 'vendor-approved',
+          context: {
+            firstName: vendor.user.firstName,
             storeName: vendor.storeName,
             loginUrl: `${process.env.FRONTEND_URL}/vendor/login`,
-          }
-        : {
+          },
+        })
+        .catch(() => null);
+    } else {
+      this.emailService
+        .sendEmail({
+          to: vendor.user.email,
+          subject: 'Your Shopa vendor application was not approved',
+          template: 'vendor-rejected',
+          context: {
+            firstName: vendor.user.firstName,
             storeName: vendor.storeName,
             reason: reason ?? 'Your application did not meet our requirements.',
-          };
-
-    this.emailService
-      .sendEmail({
-        to: vendor.user.email,
-        subject,
-        template: status === 'APPROVED' ? 'vendor-approved' : 'vendor-rejected',
-        context: emailContext,
-      })
-      .catch(() => null);
+          },
+        })
+        .catch(() => null);
+    }
 
     return updated;
   }
