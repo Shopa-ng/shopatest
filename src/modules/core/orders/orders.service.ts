@@ -18,6 +18,36 @@ export class OrdersService {
     private pushService: PushNotificationService,
   ) {}
 
+  async findAll() {
+    const orders = await this.prisma.order.findMany({
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        totalAmount: true,
+        createdAt: true,
+        buyer: { select: { firstName: true, lastName: true, email: true } },
+        vendor: {
+          select: {
+            storeName: true,
+            user: { select: { campus: { select: { name: true } } } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      success: true,
+      data: orders.map(({ vendor, totalAmount, ...order }) => ({
+        ...order,
+        total: Number(totalAmount),
+        vendor: { storeName: vendor.storeName },
+        campus: vendor.user?.campus ?? null,
+      })),
+    };
+  }
+
   async findByBuyer(userId: string) {
     return this.prisma.order.findMany({
       where: { buyerId: userId },

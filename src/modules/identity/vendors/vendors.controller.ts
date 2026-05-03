@@ -134,7 +134,7 @@ export class VendorsController {
 
   @Get('admin/withdrawals')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, 'SUPER_ADMIN' as any)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get all withdrawal requests (admin)' })
   @ApiQuery({ name: 'status', required: false, enum: WithdrawalStatus })

@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -22,6 +23,14 @@ import { RejectOrderDto } from './dto/order.dto';
 @ApiBearerAuth()
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
+
+  @Get('all')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN' as any)
+  @ApiOperation({ summary: 'Get all orders platform-wide (Super Admin)' })
+  async findAll() {
+    return this.ordersService.findAll();
+  }
 
   @Get('my-orders')
   @ApiOperation({ summary: 'Get orders placed by me (Buyer)' })

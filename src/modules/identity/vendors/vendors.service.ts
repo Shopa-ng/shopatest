@@ -146,6 +146,9 @@ export class VendorsService {
         },
         user: {
           select: {
+            firstName: true,
+            lastName: true,
+            email: true,
             campus: { select: { id: true, name: true } },
           },
         },
@@ -154,6 +157,7 @@ export class VendorsService {
 
     return vendors.map(({ user, ...vendor }) => ({
       ...vendor,
+      user: user ? { firstName: user.firstName, lastName: user.lastName, email: user.email } : null,
       campus: user?.campus ?? null,
     }));
   }

@@ -40,7 +40,7 @@ export class DisputesController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, 'SUPER_ADMIN' as any)
   @ApiOperation({ summary: 'Get all disputes (Admin)' })
   async findAll(@Query('status') status?: DisputeStatus) {
     return this.disputesService.findAll(status);
