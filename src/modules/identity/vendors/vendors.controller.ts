@@ -110,7 +110,7 @@ export class VendorsController {
 
   @Get('admin/pending')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, 'SUPER_ADMIN' as any)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get pending vendor applications (admin)' })
   @ApiQuery({ name: 'campusId', required: false })
