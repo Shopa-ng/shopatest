@@ -21,8 +21,6 @@ import { UploadService } from './upload.service';
 
 @ApiTags('Upload')
 @Controller('upload')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
@@ -54,6 +52,8 @@ export class UploadController {
   }
 
   @Post('images')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Upload multiple images (max 5)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
