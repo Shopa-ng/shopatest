@@ -101,6 +101,7 @@ export class UsersService {
         email: true,
         role: true,
         isVerified: true,
+        isActive: true,
         createdAt: true,
         campus: {
           select: { id: true, name: true },
