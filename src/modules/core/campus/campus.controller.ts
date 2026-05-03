@@ -36,9 +36,9 @@ export class CampusController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, 'SUPER_ADMIN' as any)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new campus (Admin only)' })
+  @ApiOperation({ summary: 'Create a new campus (Admin or Super Admin)' })
   async create(@Body() createDto: CreateCampusDto) {
     return this.campusService.create(createDto);
   }

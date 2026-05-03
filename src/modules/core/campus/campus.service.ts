@@ -29,10 +29,41 @@ export class CampusService {
   }
 
   async findAll(activeOnly = true) {
-    return this.prisma.campus.findMany({
+    const campuses = await this.prisma.campus.findMany({
       where: activeOnly ? { isActive: true } : undefined,
       orderBy: { name: 'asc' },
+      include: {
+        _count: {
+          select: { users: true },
+        },
+      },
     });
+
+    // Derive vendor/student counts from a single users count query per campus
+    const campusIds = campuses.map((c) => c.id);
+    const [vendorCounts, studentCounts] = await Promise.all([
+      this.prisma.user.groupBy({
+        by: ['campusId'],
+        where: { campusId: { in: campusIds }, role: 'VENDOR' as any },
+        _count: { id: true },
+      }),
+      this.prisma.user.groupBy({
+        by: ['campusId'],
+        where: { campusId: { in: campusIds }, role: 'STUDENT' as any },
+        _count: { id: true },
+      }),
+    ]);
+
+    const vendorMap = Object.fromEntries(vendorCounts.map((r) => [r.campusId, r._count.id]));
+    const studentMap = Object.fromEntries(studentCounts.map((r) => [r.campusId, r._count.id]));
+
+    return campuses.map(({ _count, ...campus }) => ({
+      ...campus,
+      _count: {
+        vendors: vendorMap[campus.id] ?? 0,
+        students: studentMap[campus.id] ?? 0,
+      },
+    }));
   }
 
   async findById(id: string) {

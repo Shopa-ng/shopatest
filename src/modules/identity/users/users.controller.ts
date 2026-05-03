@@ -47,11 +47,18 @@ export class UsersController {
     return this.usersService.uploadStudentId(userId, uploadDto);
   }
 
+  @Get('students')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN' as any)
+  @ApiOperation({ summary: 'Get all students (Super Admin only)' })
+  async getStudents(@Query('campusId') campusId?: string) {
+    return this.usersService.findStudents(campusId);
+  }
+
   @Get('admins')
   @UseGuards(RolesGuard)
   @Roles('SUPER_ADMIN' as any)
   @ApiOperation({ summary: 'Get all university admins (Super Admin only)' })
-  @ApiOperation({ summary: 'Filter by campusId optionally' })
   async getAdmins(@Query('campusId') campusId?: string) {
     return this.usersService.findAdmins(campusId);
   }

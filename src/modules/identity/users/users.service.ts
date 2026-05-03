@@ -136,6 +136,33 @@ export class UsersService {
     });
   }
 
+  async findStudents(campusId?: string) {
+    const students = await this.prisma.user.findMany({
+      where: {
+        role: 'STUDENT' as any,
+        ...(campusId && { campusId }),
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        isVerified: true,
+        createdAt: true,
+        campus: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      success: true,
+      data: students.map((s) => ({ ...s, isActive: s.isVerified })),
+    };
+  }
+
   async findPendingVerifications(campusId?: string) {
     return this.prisma.user.findMany({
       where: {
