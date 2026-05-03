@@ -115,6 +115,19 @@ export class UsersService {
     };
   }
 
+  async toggleStatus(id: string, isActive: boolean) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { isActive },
+      select: { id: true, isActive: true },
+    });
+
+    return { success: true, data: updated };
+  }
+
   async verifyUser(id: string, status: VerificationStatus) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {

@@ -71,6 +71,17 @@ export class UsersController {
     return this.usersService.findPendingVerifications(campusId);
   }
 
+  @Patch('admin/:id/toggle-status')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN' as any)
+  @ApiOperation({ summary: 'Toggle user active status (Super Admin only)' })
+  async toggleStatus(
+    @Param('id') id: string,
+    @Body('isActive') isActive: boolean,
+  ) {
+    return this.usersService.toggleStatus(id, isActive);
+  }
+
   @Patch(':id/verify')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)

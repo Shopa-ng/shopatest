@@ -45,9 +45,9 @@ export class CampusController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, 'SUPER_ADMIN' as any)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update campus (Admin only)' })
+  @ApiOperation({ summary: 'Update campus (Admin or Super Admin)' })
   async update(@Param('id') id: string, @Body() updateDto: UpdateCampusDto) {
     return this.campusService.update(id, updateDto);
   }
