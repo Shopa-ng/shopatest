@@ -47,7 +47,15 @@ export class UsersController {
     return this.usersService.uploadStudentId(userId, uploadDto);
   }
 
-  // Admin endpoints
+  @Get('admins')
+  @UseGuards(RolesGuard)
+  @Roles('SUPER_ADMIN' as any)
+  @ApiOperation({ summary: 'Get all university admins (Super Admin only)' })
+  @ApiOperation({ summary: 'Filter by campusId optionally' })
+  async getAdmins(@Query('campusId') campusId?: string) {
+    return this.usersService.findAdmins(campusId);
+  }
+
   @Get('pending-verifications')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
@@ -66,4 +74,4 @@ export class UsersController {
   ) {
     return this.usersService.verifyUser(id, status);
   }
-}
+} 

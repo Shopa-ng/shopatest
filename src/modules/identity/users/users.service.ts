@@ -88,6 +88,33 @@ export class UsersService {
     });
   }
 
+  async findAdmins(campusId?: string) {
+    const admins = await this.prisma.user.findMany({
+      where: {
+        role: 'ADMIN' as any,
+        ...(campusId && { campusId }),
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        isVerified: true,
+        createdAt: true,
+        campus: {
+          select: { id: true, name: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      success: true,
+      data: admins,
+    };
+  }
+
   async verifyUser(id: string, status: VerificationStatus) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
@@ -131,4 +158,4 @@ export class UsersService {
       },
     });
   }
-}
+} 
