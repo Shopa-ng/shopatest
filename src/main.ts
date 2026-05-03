@@ -14,6 +14,9 @@ async function bootstrap() {
   origin: [
     configService.get<string>('app.frontendUrl') as string,
     'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:3003',
     'https://shopshopa.com.ng',
     'https://vendor.shopshopa.com.ng',
     'https://uadmin.shopshopa.com.ng',
