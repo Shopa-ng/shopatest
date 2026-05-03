@@ -149,6 +149,7 @@ export class UsersService {
         email: true,
         phone: true,
         isVerified: true,
+        isActive: true,
         createdAt: true,
         campus: {
           select: { id: true, name: true },
@@ -159,7 +160,7 @@ export class UsersService {
 
     return {
       success: true,
-      data: students.map((s) => ({ ...s, isActive: s.isVerified })),
+      data: students,
     };
   }
 

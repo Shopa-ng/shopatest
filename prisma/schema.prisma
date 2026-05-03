@@ -102,6 +102,7 @@ model User {
   lastName           String
   phone              String?
   role               UserRole           @default(STUDENT)
+  isActive           Boolean            @default(true)
   isVerified         Boolean            @default(false)
   isEmailVerified    Boolean            @default(false)
   studentIdUrl       String?
