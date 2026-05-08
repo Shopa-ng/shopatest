@@ -10,6 +10,7 @@ import { OrderStatus, PaymentStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../../prisma';
+import { EmailService } from '../../communication/email';
 import { InitializePaymentDto, PaystackWebhookDto } from './dto';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class PaymentsService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private emailService: EmailService,
   ) {}
 
   async initializePayment(userId: string, dto: InitializePaymentDto) {
@@ -133,7 +135,21 @@ export class PaymentsService {
   private async handleSuccessfulPayment(reference: string) {
     const payment = await this.prisma.payment.findUnique({
       where: { reference },
-      include: { order: true },
+      include: {
+        order: {
+          include: {
+            orderItems: {
+              include: { product: { select: { name: true } } },
+            },
+            buyer: { select: { firstName: true, lastName: true } },
+            vendor: {
+              include: {
+                user: { select: { email: true, firstName: true } },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!payment) {
@@ -157,6 +173,32 @@ export class PaymentsService {
     });
 
     this.logger.log(`Payment ${reference} successful, funds held in escrow`);
+
+    // Notify vendor of new paid order
+    const order = payment.order;
+    const vendorEmail = order.vendor.user.email;
+    const vendorFirstName = order.vendor.user.firstName;
+    const itemLines = order.orderItems
+      .map((i) => `${i.quantity}x ${i.product.name}`)
+      .join(', ');
+    const placedAt = order.createdAt.toLocaleString('en-NG', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+
+    this.emailService
+      .sendEmail({
+        to: vendorEmail,
+        subject: 'New order received on Shopa!',
+        template: 'order-status',
+        context: {
+          firstName: vendorFirstName,
+          orderNumber: order.orderNumber,
+          status: 'NEW_ORDER',
+          statusMessage: `Hi ${vendorFirstName}, you have a new order on Shopa!\n\nOrder #: ${order.orderNumber}\nItems: ${itemLines}\nTotal: ₦${Number(order.totalAmount).toLocaleString('en-NG')}\nDelivery: ${order.deliveryAddress ?? order.notes ?? 'N/A'}\nCustomer: ${order.buyer.firstName} ${order.buyer.lastName}\nPlaced: ${placedAt}\n\nPlease log in to your vendor dashboard to accept or decline this order within 24 hours.\n\nhttps://vendor.shopshopa.com.ng/vendor/orders`,
+        },
+      })
+      .catch(() => null);
   }
 
   async verifyPayment(reference: string) {
