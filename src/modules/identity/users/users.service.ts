@@ -17,6 +17,7 @@ export class UsersService {
         lastName: true,
         phone: true,
         role: true,
+        isActive: true,
         isVerified: true,
         isEmailVerified: true,
         verificationStatus: true,
@@ -25,7 +26,6 @@ export class UsersService {
           select: {
             id: true,
             name: true,
-            code: true,
             isActive: true,
           },
         },
