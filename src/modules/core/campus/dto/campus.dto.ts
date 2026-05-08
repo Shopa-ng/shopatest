@@ -1,6 +1,17 @@
 import { IsString, IsOptional, IsBoolean } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+export class CreatePickupLocationDto {
+  @ApiProperty({ example: 'Main Gate' })
+  @IsString()
+  name: string;
+
+  @ApiPropertyOptional({ example: 'Near the security post' })
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
 export class CreateCampusDto {
   @ApiProperty({ example: 'University of Lagos' })
   @IsString()

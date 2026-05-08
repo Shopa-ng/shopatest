@@ -68,7 +68,7 @@ export class OrdersService {
     const vendor = await this.prisma.vendor.findUnique({ where: { userId } });
     if (!vendor) throw new ForbiddenException('Vendor profile not found');
 
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where: { vendorId: vendor.id },
       include: {
         orderItems: {
@@ -78,6 +78,16 @@ export class OrdersService {
         payment: { select: { status: true, amount: true } },
       },
       orderBy: { createdAt: 'desc' },
+    });
+
+    return orders.map(({ deliveryMethod, deliveryAddress, ...order }) => {
+      const isPickup = deliveryMethod?.toUpperCase() === 'PICKUP';
+      return {
+        ...order,
+        deliveryType: isPickup ? 'PICKUP' : 'DELIVERY',
+        pickupLocation: isPickup ? deliveryAddress : null,
+        deliveryAddress: isPickup ? null : deliveryAddress,
+      };
     });
   }
 
@@ -191,9 +201,25 @@ export class OrdersService {
       .notifyOrderStatusChange(order.buyerId, order.orderNumber, 'CONFIRMED')
       .catch(() => null);
 
-    // Notify buyer via email
+    // Confirmation email to buyer
+    const isPickup = order.deliveryMethod?.toUpperCase() === 'PICKUP';
+    const expectedDelivery = new Date();
+    expectedDelivery.setDate(expectedDelivery.getDate() + 2);
+    const deliveryDateStr = expectedDelivery.toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' });
+
     this.emailService
-      .sendOrderStatusUpdate(order.buyerId, order.orderNumber, 'CONFIRMED')
+      .sendEmail({
+        to: order.buyer.email,
+        subject: 'Your Shopa order has been confirmed!',
+        template: 'order-status',
+        context: {
+          firstName: order.buyer.firstName,
+          orderNumber: order.orderNumber,
+          storeName: order.vendor.storeName,
+          status: 'CONFIRMED',
+          statusMessage: `Hi ${order.buyer.firstName}, your order #${order.orderNumber} from ${order.vendor.storeName} has been accepted. Expected delivery: ${deliveryDateStr}. ${isPickup ? `Pickup location: ${order.deliveryAddress ?? 'to be confirmed by vendor'}.` : `Delivery address: ${order.deliveryAddress ?? 'as provided'}.`} Total: ₦${Number(order.totalAmount).toLocaleString('en-NG')}.`,
+        },
+      })
       .catch(() => null);
 
     return updated;
@@ -233,7 +259,7 @@ export class OrdersService {
           orderNumber: order.orderNumber,
           storeName: order.vendor.storeName,
           status: 'DECLINED',
-          statusMessage: `Hi ${order.buyer.firstName}, your order #${order.orderNumber} from ${order.vendor.storeName} was declined. ${refundStatus ? 'Your payment will be refunded within 3–5 business days.' : ''}`,
+          statusMessage: `Hi ${order.buyer.firstName}, your order #${order.orderNumber} from ${order.vendor.storeName} was declined. ${refundStatus ? 'Your payment will be refunded within 24–72 hours.' : ''}`,
         },
       })
       .catch(() => null);
@@ -312,7 +338,7 @@ export class OrdersService {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
-        buyer: { select: { email: true, firstName: true } },
+        buyer: { select: { email: true, firstName: true, lastName: true } },
         payment: { select: { reference: true } },
         vendor: { select: { storeName: true } },
       },

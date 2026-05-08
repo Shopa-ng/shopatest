@@ -81,17 +81,30 @@ enum VendorStatus {
 // ============================================
 
 model Campus {
-  id        String    @id @default(uuid())
-  name      String    @unique
-  code      String    @unique
-  location  String?
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  users     User[]
-  products  Product[]
+  id              String           @id @default(uuid())
+  name            String           @unique
+  code            String           @unique
+  location        String?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  users           User[]
+  products        Product[]
+  pickupLocations PickupLocation[]
 
   @@map("campuses")
+}
+
+model PickupLocation {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  campusId String
+  campus   Campus @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@map("pickup_locations")
 }
 
 model User {

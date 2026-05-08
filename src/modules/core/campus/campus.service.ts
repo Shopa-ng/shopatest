@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma';
-import { CreateCampusDto, UpdateCampusDto } from './dto';
+import { CreateCampusDto, CreatePickupLocationDto, UpdateCampusDto } from './dto';
 
 @Injectable()
 export class CampusService {
@@ -70,11 +70,12 @@ export class CampusService {
     const campus = await this.prisma.campus.findUnique({
       where: { id },
       include: {
+        pickupLocations: {
+          select: { id: true, name: true, description: true },
+          orderBy: { createdAt: 'asc' },
+        },
         _count: {
-          select: {
-            users: true,
-            products: true,
-          },
+          select: { users: true, products: true },
         },
       },
     });
@@ -84,6 +85,37 @@ export class CampusService {
     }
 
     return campus;
+  }
+
+  async getPickupLocations(campusId: string) {
+    const campus = await this.prisma.campus.findUnique({ where: { id: campusId } });
+    if (!campus) throw new NotFoundException('Campus not found');
+
+    return this.prisma.pickupLocation.findMany({
+      where: { campusId },
+      select: { id: true, name: true, description: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async addPickupLocation(campusId: string, dto: CreatePickupLocationDto) {
+    const campus = await this.prisma.campus.findUnique({ where: { id: campusId } });
+    if (!campus) throw new NotFoundException('Campus not found');
+
+    return this.prisma.pickupLocation.create({
+      data: { campusId, name: dto.name, description: dto.description },
+      select: { id: true, name: true, description: true },
+    });
+  }
+
+  async removePickupLocation(campusId: string, locationId: string) {
+    const location = await this.prisma.pickupLocation.findFirst({
+      where: { id: locationId, campusId },
+    });
+    if (!location) throw new NotFoundException('Pickup location not found');
+
+    await this.prisma.pickupLocation.delete({ where: { id: locationId } });
+    return { success: true };
   }
 
   async update(id: string, updateDto: UpdateCampusDto) {

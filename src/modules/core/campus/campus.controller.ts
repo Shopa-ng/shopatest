@@ -15,7 +15,7 @@ import { Roles } from 'src/common/decorators';
 import { RolesGuard } from 'src/common/guards';
 import { JwtAuthGuard } from 'src/modules/identity/auth/guards';
 import { CampusService } from './campus.service';
-import { CreateCampusDto, UpdateCampusDto } from './dto';
+import { CreateCampusDto, CreatePickupLocationDto, UpdateCampusDto } from './dto';
 
 @ApiTags('Campus')
 @Controller('campuses')
@@ -59,5 +59,35 @@ export class CampusController {
   @ApiOperation({ summary: 'Delete campus (Admin only)' })
   async delete(@Param('id') id: string) {
     return this.campusService.delete(id);
+  }
+
+  @Get(':id/pickup-locations')
+  @ApiOperation({ summary: 'Get pickup locations for a campus (public)' })
+  async getPickupLocations(@Param('id') id: string) {
+    return this.campusService.getPickupLocations(id);
+  }
+
+  @Post(':id/pickup-locations')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN' as any)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Add a pickup location to a campus (Super Admin)' })
+  async addPickupLocation(
+    @Param('id') id: string,
+    @Body() dto: CreatePickupLocationDto,
+  ) {
+    return this.campusService.addPickupLocation(id, dto);
+  }
+
+  @Delete(':id/pickup-locations/:locationId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN' as any)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Remove a pickup location from a campus (Super Admin)' })
+  async removePickupLocation(
+    @Param('id') id: string,
+    @Param('locationId') locationId: string,
+  ) {
+    return this.campusService.removePickupLocation(id, locationId);
   }
 }
