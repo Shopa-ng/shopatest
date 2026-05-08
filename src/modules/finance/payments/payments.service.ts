@@ -207,6 +207,41 @@ export class PaymentsService {
     return order.id;
   }
 
+  async syncPaymentStatus(reference: string): Promise<boolean> {
+    const paystackSecretKey = this.configService.get<string>('paystack.secretKey');
+    try {
+      const response = await fetch(
+        `https://api.paystack.co/transaction/verify/${reference}`,
+        { headers: { Authorization: `Bearer ${paystackSecretKey}` } },
+      );
+      const data = await response.json();
+
+      if (data.status && data.data.status === 'success') {
+        const payment = await this.prisma.payment.findUnique({
+          where: { reference },
+          include: { order: { select: { id: true, status: true } } },
+        });
+        if (!payment || payment.order.status === OrderStatus.PAID) return true;
+
+        await this.prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: PaymentStatus.HELD,
+            escrowReleaseDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          },
+        });
+        await this.prisma.order.update({
+          where: { id: payment.orderId },
+          data: { status: OrderStatus.PAID },
+        });
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
   async verifyPayment(reference: string) {
     const paystackSecretKey =
       this.configService.get<string>('paystack.secretKey');

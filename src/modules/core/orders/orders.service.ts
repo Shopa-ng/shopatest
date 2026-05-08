@@ -179,13 +179,10 @@ export class OrdersService {
     const order = await this.getVendorOrder(id, userId);
 
     if (order.status !== OrderStatus.PAID) {
-      // Fallback: sync payment status from Paystack before rejecting
+      // Fallback: sync payment status from Paystack without triggering vendor email
       if (order.payment?.reference) {
-        await this.paymentsService.verifyPayment(order.payment.reference);
-        const refreshed = await this.prisma.order.findUnique({ where: { id }, select: { status: true } });
-        if (refreshed?.status !== OrderStatus.PAID) {
-          throw new BadRequestException('Only paid orders can be accepted');
-        }
+        const synced = await this.paymentsService.syncPaymentStatus(order.payment.reference);
+        if (!synced) throw new BadRequestException('Only paid orders can be accepted');
       } else {
         throw new BadRequestException('Only paid orders can be accepted');
       }
