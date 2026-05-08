@@ -132,7 +132,7 @@ export class PaymentsService {
     return { received: true };
   }
 
-  private async handleSuccessfulPayment(reference: string) {
+  private async handleSuccessfulPayment(reference: string): Promise<string | null> {
     const payment = await this.prisma.payment.findUnique({
       where: { reference },
       include: {
@@ -154,7 +154,15 @@ export class PaymentsService {
 
     if (!payment) {
       this.logger.warn(`Payment not found for reference: ${reference}`);
-      return;
+      return null;
+    }
+
+    const order = payment.order;
+
+    // Guard: skip if already PAID to prevent duplicate emails
+    if (order.status === OrderStatus.PAID) {
+      this.logger.log(`Order ${order.id} already PAID — skipping duplicate processing`);
+      return order.id;
     }
 
     // Update payment to HELD (escrow)
@@ -168,23 +176,19 @@ export class PaymentsService {
 
     // Update order to PAID
     await this.prisma.order.update({
-      where: { id: payment.orderId },
+      where: { id: order.id },
       data: { status: OrderStatus.PAID },
     });
 
     this.logger.log(`Payment ${reference} successful, funds held in escrow`);
 
     // Notify vendor of new paid order
-    const order = payment.order;
     const vendorEmail = order.vendor.user.email;
     const vendorFirstName = order.vendor.user.firstName;
     const itemLines = order.orderItems
       .map((i) => `${i.quantity}x ${i.product.name}`)
       .join(', ');
-    const placedAt = order.createdAt.toLocaleString('en-NG', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    });
+    const delivery = order.deliveryAddress ?? order.notes ?? 'N/A';
 
     this.emailService
       .sendEmail({
@@ -195,10 +199,12 @@ export class PaymentsService {
           firstName: vendorFirstName,
           orderNumber: order.orderNumber,
           status: 'NEW_ORDER',
-          statusMessage: `Hi ${vendorFirstName}, you have a new order on Shopa!\n\nOrder #: ${order.orderNumber}\nItems: ${itemLines}\nTotal: ₦${Number(order.totalAmount).toLocaleString('en-NG')}\nDelivery: ${order.deliveryAddress ?? order.notes ?? 'N/A'}\nCustomer: ${order.buyer.firstName} ${order.buyer.lastName}\nPlaced: ${placedAt}\n\nPlease log in to your vendor dashboard to accept or decline this order within 24 hours.\n\nhttps://vendor.shopshopa.com.ng/vendor/orders`,
+          statusMessage: `Hi ${vendorFirstName}, you have a new order! Order #${order.orderNumber} — ${itemLines} — Total: ₦${Number(order.totalAmount).toLocaleString('en-NG')} — Customer: ${order.buyer.firstName} ${order.buyer.lastName} — Delivery: ${delivery}. Log in to accept or decline: https://vendor.shopshopa.com.ng/vendor/orders`,
         },
       })
       .catch(() => null);
+
+    return order.id;
   }
 
   async verifyPayment(reference: string) {
@@ -218,11 +224,11 @@ export class PaymentsService {
       const data = await response.json();
 
       if (data.status && data.data.status === 'success') {
-        await this.handleSuccessfulPayment(reference);
-        return { verified: true, status: 'success' };
+        const orderId = await this.handleSuccessfulPayment(reference);
+        return { verified: true, status: 'success', orderId };
       }
 
-      return { verified: false, status: data.data?.status || 'unknown' };
+      return { verified: false, status: data.data?.status || 'unknown', orderId: null };
     } catch (error) {
       this.logger.error('Payment verification error:', error);
       throw new BadRequestException('Failed to verify payment');

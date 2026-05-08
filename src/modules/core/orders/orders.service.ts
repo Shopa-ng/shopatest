@@ -206,6 +206,9 @@ export class OrdersService {
     const expectedDelivery = new Date();
     expectedDelivery.setDate(expectedDelivery.getDate() + 2);
     const deliveryDateStr = expectedDelivery.toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' });
+    const deliveryDetail = isPickup
+      ? (order.notes ?? order.deliveryAddress ?? 'to be confirmed by vendor')
+      : (order.deliveryAddress ?? order.notes ?? 'as provided');
 
     this.emailService
       .sendEmail({
@@ -217,7 +220,7 @@ export class OrdersService {
           orderNumber: order.orderNumber,
           storeName: order.vendor.storeName,
           status: 'CONFIRMED',
-          statusMessage: `Hi ${order.buyer.firstName}, your order #${order.orderNumber} from ${order.vendor.storeName} has been accepted. Expected delivery: ${deliveryDateStr}. ${isPickup ? `Pickup location: ${order.deliveryAddress ?? 'to be confirmed by vendor'}.` : `Delivery address: ${order.deliveryAddress ?? 'as provided'}.`} Total: ₦${Number(order.totalAmount).toLocaleString('en-NG')}.`,
+          statusMessage: `Hi ${order.buyer.firstName}, your order #${order.orderNumber} has been accepted by ${order.vendor.storeName}. Expected delivery: ${deliveryDateStr}. Delivery: ${deliveryDetail}. Total: ₦${Number(order.totalAmount).toLocaleString('en-NG')}. You will be notified once your order is delivered.`,
         },
       })
       .catch(() => null);
@@ -259,7 +262,7 @@ export class OrdersService {
           orderNumber: order.orderNumber,
           storeName: order.vendor.storeName,
           status: 'DECLINED',
-          statusMessage: `Hi ${order.buyer.firstName}, your order #${order.orderNumber} from ${order.vendor.storeName} was declined. ${refundStatus ? 'Your payment will be refunded within 24–72 hours.' : ''}`,
+          statusMessage: `Hi ${order.buyer.firstName}, unfortunately your order #${order.orderNumber} from ${order.vendor.storeName} was declined. Your payment will be refunded within 24-72 hours. If you have questions, please contact support.`,
         },
       })
       .catch(() => null);
