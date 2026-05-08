@@ -4,6 +4,7 @@ import {
   IsArray,
   IsNumber,
   IsUUID,
+  IsEnum,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -47,6 +48,7 @@ export class CreateOrderDto {
 
 export class UpdateOrderStatusDto {
   @ApiProperty({ enum: OrderStatus })
+  @IsEnum(OrderStatus)
   status: OrderStatus;
 }
 
