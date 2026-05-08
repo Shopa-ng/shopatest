@@ -53,7 +53,16 @@ export class OrdersService {
   async findByBuyer(userId: string) {
     return this.prisma.order.findMany({
       where: { buyerId: userId },
-      include: {
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        totalAmount: true,
+        deliveryAddress: true,
+        deliveryMethod: true,
+        notes: true,
+        expectedDelivery: true,
+        createdAt: true,
         orderItems: {
           include: { product: { select: { name: true, images: true, price: true } } },
         },

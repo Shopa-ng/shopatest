@@ -103,7 +103,7 @@ export class PaymentsService {
 
       return {
         authorizationUrl: data.data.authorization_url,
-        reference: data.data.reference,
+        reference,
         accessCode: data.data.access_code,
       };
     } catch (error) {
@@ -190,6 +190,7 @@ export class PaymentsService {
       .join(', ');
     const delivery = order.deliveryAddress ?? order.notes ?? 'N/A';
 
+    this.logger.log(`Sending vendor email to ${vendorEmail} for order ${order.orderNumber}`);
     this.emailService
       .sendEmail({
         to: vendorEmail,
@@ -202,7 +203,11 @@ export class PaymentsService {
           statusMessage: `Hi ${vendorFirstName}, you have a new order! Order #${order.orderNumber} — ${itemLines} — Total: ₦${Number(order.totalAmount).toLocaleString('en-NG')} — Customer: ${order.buyer.firstName} ${order.buyer.lastName} — Delivery: ${delivery}. Log in to accept or decline: https://vendor.shopshopa.com.ng/vendor/orders`,
         },
       })
-      .catch(() => null);
+      .then((sent) => {
+        if (sent) this.logger.log(`Vendor email sent to ${vendorEmail}`);
+        else this.logger.error(`Vendor email failed for ${vendorEmail}`);
+      })
+      .catch((e) => this.logger.error(`Vendor email exception: ${e?.message}`));
 
     return order.id;
   }
