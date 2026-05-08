@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsUUID,
   IsEnum,
+  IsDateString,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -50,6 +51,13 @@ export class UpdateOrderStatusDto {
   @ApiProperty({ enum: OrderStatus })
   @IsEnum(OrderStatus)
   status: OrderStatus;
+}
+
+export class AcceptOrderDto {
+  @ApiPropertyOptional({ example: '2026-05-10' })
+  @IsOptional()
+  @IsDateString()
+  expectedDelivery?: string;
 }
 
 export class RejectOrderDto {

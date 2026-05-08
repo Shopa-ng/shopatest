@@ -10,12 +10,11 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
-import { CreateOrderDto, UpdateOrderStatusDto } from './dto';
+import { AcceptOrderDto, CreateOrderDto, RejectOrderDto, UpdateOrderStatusDto } from './dto';
 import { JwtAuthGuard } from 'src/modules/identity/auth/guards';
 import { RolesGuard } from 'src/common/guards';
 import { CurrentUser, Roles } from 'src/common/decorators';
 import { UserRole } from '@prisma/client';
-import { RejectOrderDto } from './dto/order.dto';
 
 @ApiTags('Orders')
 @Controller('orders')
@@ -68,8 +67,9 @@ export class OrdersController {
   async acceptOrder(
     @Param('id') id: string,
     @CurrentUser('id') userId: string,
+    @Body() dto: AcceptOrderDto,
   ) {
-    return this.ordersService.acceptOrder(id, userId);
+    return this.ordersService.acceptOrder(id, userId, dto.expectedDelivery);
   }
 
   @Post(':id/reject')

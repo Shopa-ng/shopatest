@@ -291,6 +291,7 @@ model Order {
   notes                   String?
   rejectionReason         String?
   refundStatus            String?
+  expectedDelivery        DateTime?
   disputeWindowExpiresAt  DateTime?
   createdAt               DateTime    @default(now())
   updatedAt               DateTime    @updatedAt

@@ -175,7 +175,7 @@ export class OrdersService {
     return order;
   }
 
-  async acceptOrder(id: string, userId: string) {
+  async acceptOrder(id: string, userId: string, expectedDelivery?: string) {
     const order = await this.getVendorOrder(id, userId);
 
     if (order.status !== OrderStatus.PAID) {
@@ -190,7 +190,10 @@ export class OrdersService {
 
     const updated = await this.prisma.order.update({
       where: { id },
-      data: { status: OrderStatus.CONFIRMED },
+      data: {
+        status: OrderStatus.CONFIRMED,
+        ...(expectedDelivery && { expectedDelivery: new Date(expectedDelivery) }),
+      },
     });
 
     // Notify buyer via push
@@ -200,9 +203,8 @@ export class OrdersService {
 
     // Confirmation email to buyer
     const isPickup = order.deliveryMethod?.toUpperCase() === 'PICKUP';
-    const expectedDelivery = new Date();
-    expectedDelivery.setDate(expectedDelivery.getDate() + 2);
-    const deliveryDateStr = expectedDelivery.toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' });
+    const deliveryDate = expectedDelivery ? new Date(expectedDelivery) : (() => { const d = new Date(); d.setDate(d.getDate() + 2); return d; })();
+    const deliveryDateStr = deliveryDate.toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' });
     const deliveryDetail = isPickup
       ? (order.notes ?? order.deliveryAddress ?? 'to be confirmed by vendor')
       : (order.deliveryAddress ?? order.notes ?? 'as provided');
@@ -271,7 +273,7 @@ export class OrdersService {
     const order = await this.getVendorOrder(id, userId);
 
     const allowedTransitions: Partial<Record<OrderStatus, OrderStatus[]>> = {
-      [OrderStatus.CONFIRMED]: [OrderStatus.SHIPPED, OrderStatus.DELIVERED],
+      [OrderStatus.CONFIRMED]: [OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.CANCELLED],
       [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED],
     };
 
