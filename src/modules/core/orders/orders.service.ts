@@ -271,7 +271,7 @@ export class OrdersService {
     const order = await this.getVendorOrder(id, userId);
 
     const allowedTransitions: Partial<Record<OrderStatus, OrderStatus[]>> = {
-      [OrderStatus.CONFIRMED]: [OrderStatus.SHIPPED],
+      [OrderStatus.CONFIRMED]: [OrderStatus.SHIPPED, OrderStatus.DELIVERED],
       [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED],
     };
 
