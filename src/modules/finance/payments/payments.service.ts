@@ -133,6 +133,8 @@ export class PaymentsService {
   }
 
   private async handleSuccessfulPayment(reference: string): Promise<string | null> {
+    this.logger.log(`[handleSuccessfulPayment] Looking up payment for reference: ${reference}`);
+
     const payment = await this.prisma.payment.findUnique({
       where: { reference },
       include: {
@@ -153,15 +155,17 @@ export class PaymentsService {
     });
 
     if (!payment) {
-      this.logger.warn(`Payment not found for reference: ${reference}`);
+      this.logger.warn(`[handleSuccessfulPayment] No payment record found for reference: ${reference}`);
       return null;
     }
 
     const order = payment.order;
+    this.logger.log(`[handleSuccessfulPayment] Found order: ${order.id}, status: ${order.status}`);
+    this.logger.log(`[handleSuccessfulPayment] Vendor email: ${order.vendor?.user?.email ?? 'MISSING'}, firstName: ${order.vendor?.user?.firstName ?? 'MISSING'}`);
 
     // Guard: skip if already PAID to prevent duplicate emails
     if (order.status === OrderStatus.PAID) {
-      this.logger.log(`Order ${order.id} already PAID — skipping duplicate processing`);
+      this.logger.log(`[handleSuccessfulPayment] Order ${order.id} already PAID — skipping duplicate processing`);
       return order.id;
     }
 
@@ -173,24 +177,30 @@ export class PaymentsService {
         escrowReleaseDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
     });
+    this.logger.log(`[handleSuccessfulPayment] Payment ${payment.id} updated to HELD`);
 
     // Update order to PAID
     await this.prisma.order.update({
       where: { id: order.id },
       data: { status: OrderStatus.PAID },
     });
-
-    this.logger.log(`Payment ${reference} successful, funds held in escrow`);
+    this.logger.log(`[handleSuccessfulPayment] Order ${order.id} updated to PAID`);
 
     // Notify vendor of new paid order
-    const vendorEmail = order.vendor.user.email;
-    const vendorFirstName = order.vendor.user.firstName;
+    const vendorEmail = order.vendor?.user?.email;
+    const vendorFirstName = order.vendor?.user?.firstName ?? 'Vendor';
+
+    if (!vendorEmail) {
+      this.logger.error(`[handleSuccessfulPayment] Cannot send vendor email — vendor.user.email is missing for order ${order.id}`);
+      return order.id;
+    }
+
     const itemLines = order.orderItems
       .map((i) => `${i.quantity}x ${i.product.name}`)
       .join(', ');
     const delivery = order.deliveryAddress ?? order.notes ?? 'N/A';
 
-    this.logger.log(`Sending vendor email to ${vendorEmail} for order ${order.orderNumber}`);
+    this.logger.log(`[handleSuccessfulPayment] Attempting vendor email to: ${vendorEmail}`);
     this.emailService
       .sendEmail({
         to: vendorEmail,
@@ -204,10 +214,10 @@ export class PaymentsService {
         },
       })
       .then((sent) => {
-        if (sent) this.logger.log(`Vendor email sent to ${vendorEmail}`);
-        else this.logger.error(`Vendor email failed for ${vendorEmail}`);
+        if (sent) this.logger.log(`[handleSuccessfulPayment] Vendor email sent successfully to ${vendorEmail}`);
+        else this.logger.error(`[handleSuccessfulPayment] Vendor email returned false (send failed) for ${vendorEmail}`);
       })
-      .catch((e) => this.logger.error(`Vendor email exception: ${e?.message}`));
+      .catch((e) => this.logger.error(`[handleSuccessfulPayment] Vendor email threw exception: ${e?.message}`));
 
     return order.id;
   }
@@ -248,10 +258,17 @@ export class PaymentsService {
   }
 
   async verifyPayment(reference: string) {
+    this.logger.log(`[verifyPayment] Called with reference: ${reference}`);
+
     const paystackSecretKey =
       this.configService.get<string>('paystack.secretKey');
 
+    if (!paystackSecretKey) {
+      this.logger.error('[verifyPayment] Paystack secret key is missing from config');
+    }
+
     try {
+      this.logger.log(`[verifyPayment] Calling Paystack API for reference: ${reference}`);
       const response = await fetch(
         `https://api.paystack.co/transaction/verify/${reference}`,
         {
@@ -262,15 +279,19 @@ export class PaymentsService {
       );
 
       const data = await response.json();
+      this.logger.log(`[verifyPayment] Paystack response status: ${data?.data?.status}, data.status: ${data?.status}`);
 
       if (data.status && data.data.status === 'success') {
+        this.logger.log(`[verifyPayment] Payment confirmed by Paystack — calling handleSuccessfulPayment`);
         const orderId = await this.handleSuccessfulPayment(reference);
+        this.logger.log(`[verifyPayment] handleSuccessfulPayment returned orderId: ${orderId}`);
         return { verified: true, status: 'success', orderId };
       }
 
+      this.logger.warn(`[verifyPayment] Payment not successful — Paystack status: ${data.data?.status}`);
       return { verified: false, status: data.data?.status || 'unknown', orderId: null };
     } catch (error) {
-      this.logger.error('Payment verification error:', error);
+      this.logger.error(`[verifyPayment] Exception: ${error?.message}`, error?.stack);
       throw new BadRequestException('Failed to verify payment');
     }
   }
