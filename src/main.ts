@@ -63,7 +63,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = configService.get<number>('app.port') || 9000;
+  const port = parseInt(process.env.PORT || '9000', 10);
   await app.listen(port, '0.0.0.0');
 
   console.log(`🚀 Shopa API is running on: http://localhost:${port}`);
