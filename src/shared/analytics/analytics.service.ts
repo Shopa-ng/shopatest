@@ -4,9 +4,12 @@ import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 export interface VendorAnalytics {
   totalOrders: number;
+  totalSales: number;
   completedOrders: number;
   pendingOrders: number;
   cancelledOrders: number;
+  pendingDisputes: number;
+  availableBalance: number;
   totalRevenue: number;
   releasedRevenue: number;
   pendingRevenue: number;
@@ -34,29 +37,31 @@ export class AnalyticsService {
 
     const vendorId = vendor.id;
 
-    // Order counts
-    const [totalOrders, completedOrders, pendingOrders, cancelledOrders] =
+    // Order counts + disputes + balance — all in parallel
+    const [totalOrders, totalSales, completedOrders, pendingOrders, cancelledOrders, pendingDisputes] =
       await Promise.all([
         this.prisma.order.count({ where: { vendorId } }),
+        // totalSales: orders the vendor has fulfilled (delivered or completed)
+        this.prisma.order.count({
+          where: { vendorId, status: { in: [OrderStatus.DELIVERED, OrderStatus.COMPLETED] } },
+        }),
         this.prisma.order.count({
           where: { vendorId, status: OrderStatus.COMPLETED },
         }),
+        // pendingOrders: new orders waiting to be accepted (not yet confirmed)
         this.prisma.order.count({
-          where: {
-            vendorId,
-            status: {
-              in: [
-                OrderStatus.PENDING,
-                OrderStatus.PAID,
-                OrderStatus.CONFIRMED,
-              ],
-            },
-          },
+          where: { vendorId, status: { in: [OrderStatus.PENDING, OrderStatus.PAID] } },
         }),
         this.prisma.order.count({
           where: { vendorId, status: OrderStatus.CANCELLED },
         }),
+        // pendingDisputes: open disputes on this vendor's orders
+        this.prisma.dispute.count({
+          where: { order: { vendorId }, status: 'OPEN' },
+        }),
       ]);
+
+    const availableBalance = Number(vendor.availableBalance ?? 0);
 
     // Revenue calculations
     const payments = await this.prisma.payment.findMany({
@@ -155,9 +160,12 @@ export class AnalyticsService {
 
     return {
       totalOrders,
+      totalSales,
       completedOrders,
       pendingOrders,
       cancelledOrders,
+      pendingDisputes,
+      availableBalance,
       totalRevenue,
       releasedRevenue,
       pendingRevenue,

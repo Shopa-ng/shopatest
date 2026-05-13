@@ -258,9 +258,11 @@ export class VendorsService {
     });
     if (!vendor) throw new NotFoundException('Vendor profile not found');
 
-    const { bankName, accountNumber, accountName, ...rest } = vendor;
+    const { bankName, accountNumber, accountName, availableBalance, totalWithdrawn, ...rest } = vendor;
     return {
       ...rest,
+      availableBalance: Number(availableBalance ?? 0),
+      totalWithdrawn: Number(totalWithdrawn ?? 0),
       bankAccount: bankName ? { bankName, accountNumber, accountName } : null,
     };
   }
