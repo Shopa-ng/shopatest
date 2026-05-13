@@ -1,10 +1,15 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsUrl, IsUUID } from 'class-validator';
 
 export class InitializePaymentDto {
   @ApiProperty()
   @IsUUID()
   orderId: string;
+
+  @ApiPropertyOptional({ description: 'Override the Paystack callback URL' })
+  @IsOptional()
+  @IsUrl({ require_tld: false })
+  callbackUrl?: string;
 }
 
 export class PaystackWebhookDto {
