@@ -83,7 +83,7 @@ export class PaymentsService {
             email: order.buyer.email,
             amount: amountInKobo,
             reference,
-            callback_url: `${this.configService.get('app.frontendUrl')}/payment/callback`,
+            callback_url: `${this.configService.get('app.appUrl')}/checkout/success`,
             metadata: {
               orderId,
               orderNumber: order.orderNumber,
