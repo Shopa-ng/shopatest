@@ -317,6 +317,7 @@ export class OrdersService {
       const updatedOrder = await tx.order.update({ where: { id }, data });
 
       if (updateDto.status === OrderStatus.DELIVERED) {
+        // Deduct stock per item
         for (const item of order.orderItems) {
           const product = await tx.product.update({
             where: { id: item.productId },
@@ -329,6 +330,16 @@ export class OrdersService {
             });
           }
         }
+
+        // Credit vendor: order amount minus 7.5% platform fee
+        const vendorEarnings = parseFloat(order.totalAmount.toString()) * 0.925;
+        await tx.vendor.update({
+          where: { id: order.vendorId },
+          data: {
+            availableBalance: { increment: vendorEarnings },
+            totalSales: { increment: 1 },
+          },
+        });
       }
 
       return updatedOrder;
