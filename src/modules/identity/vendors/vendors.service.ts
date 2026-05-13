@@ -113,6 +113,29 @@ export class VendorsService {
       })
       .catch(() => null);
 
+    // Notify the campus admin (if one exists) about the new vendor application
+    this.prisma.user
+      .findFirst({
+        where: { campusId: dto.campusId, role: 'ADMIN' },
+        select: { email: true, firstName: true },
+      })
+      .then((admin) => {
+        if (!admin) return;
+        const categoryNames = categories.map((c) => c.name).join(', ');
+        return this.emailService.sendEmail({
+          to: admin.email,
+          subject: 'New vendor application on Shopa',
+          template: 'order-status',
+          context: {
+            firstName: admin.firstName,
+            orderNumber: result.vendor.id,
+            status: 'NEW_VENDOR',
+            statusMessage: `Hi ${admin.firstName}, a new vendor has applied to sell on ${campus.name}.\n\nVendor Details:\n• Store Name: ${dto.storeName}\n• Vendor Name: ${dto.firstName} ${dto.lastName}\n• Email: ${dto.email}\n• Categories: ${categoryNames}\n\nPlease log in to your admin dashboard to review and approve or reject this application.`,
+          },
+        });
+      })
+      .catch(() => null);
+
     return {
       message:
         'Registration submitted successfully. You will be notified once your account is approved.',

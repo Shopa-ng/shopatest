@@ -178,6 +178,49 @@ export class ProductsService {
       throw new ForbiddenException('Vendor profile not found');
     }
 
-    return this.findAll({ ...query, vendorId: vendor.id });
+    const {
+      search,
+      categoryId,
+      page = 1,
+      limit = 20,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+    } = query;
+
+    // No isActive filter — vendors see all their products including inactive/out-of-stock
+    const where: Prisma.ProductWhereInput = {
+      vendorId: vendor.id,
+      ...(categoryId && { categoryId }),
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      }),
+    };
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        include: {
+          vendor: { select: { storeName: true, rating: true } },
+          category: { select: { name: true } },
+        },
+        orderBy: { [sortBy]: sortOrder },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    return {
+      data: products,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 }
