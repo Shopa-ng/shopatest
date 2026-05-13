@@ -1,0 +1,1 @@
+ALTER TABLE "disputes" ADD COLUMN "vendorProofUrls" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

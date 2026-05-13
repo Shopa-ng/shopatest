@@ -289,7 +289,7 @@ export class DisputesService {
     return dispute;
   }
 
-  async respondToDispute(id: string, vendorUserId: string, response: string) {
+  async respondToDispute(id: string, vendorUserId: string, response: string, vendorProofUrls?: string[]) {
     const vendor = await this.prisma.vendor.findUnique({ where: { userId: vendorUserId } });
     if (!vendor) throw new ForbiddenException('Vendor profile not found');
 
@@ -313,6 +313,7 @@ export class DisputesService {
       data: {
         status: DisputeStatus.UNDER_REVIEW,
         resolution: `Vendor response: ${response}`,
+        ...(vendorProofUrls?.length && { vendorProofUrls }),
       },
     });
   }

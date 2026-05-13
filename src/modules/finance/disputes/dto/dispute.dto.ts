@@ -48,4 +48,13 @@ export class RespondToDisputeDto {
   @ApiProperty({ example: 'The item was delivered in perfect condition' })
   @IsString()
   response: string;
+
+  @ApiPropertyOptional({
+    example: ['https://cloudinary.com/vendor-proof1.jpg'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  vendorProofUrls?: string[];
 }

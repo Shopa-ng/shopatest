@@ -70,7 +70,7 @@ export class DisputesController {
     @CurrentUser('id') userId: string,
     @Body() dto: RespondToDisputeDto,
   ) {
-    return this.disputesService.respondToDispute(id, userId, dto.response);
+    return this.disputesService.respondToDispute(id, userId, dto.response, dto.vendorProofUrls);
   }
 
   @Patch(':id/resolve')

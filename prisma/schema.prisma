@@ -367,9 +367,10 @@ model Dispute {
   reason         String
   description    String?
   accountDetails String?
-  proofUrls      String[]      @default([])
-  status         DisputeStatus @default(OPEN)
-  resolution     String?
+  proofUrls       String[]      @default([])
+  vendorProofUrls String[]      @default([])
+  status          DisputeStatus @default(OPEN)
+  resolution      String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
