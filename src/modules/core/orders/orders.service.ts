@@ -81,7 +81,7 @@ export class OrdersService {
       where: { vendorId: vendor.id },
       include: {
         orderItems: {
-          include: { product: { select: { name: true, images: true, price: true } } },
+          include: { product: { select: { name: true, images: true, price: true, saleType: true } } },
         },
         buyer: { select: { firstName: true, lastName: true, phone: true } },
         payment: { select: { status: true, amount: true } },
@@ -89,10 +89,12 @@ export class OrdersService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return orders.map(({ deliveryMethod, deliveryAddress, ...order }) => {
+    return orders.map(({ deliveryMethod, deliveryAddress, orderItems, ...order }) => {
       const isPickup = deliveryMethod?.toUpperCase() === 'PICKUP';
       return {
         ...order,
+        orderItems,
+        saleType: orderItems[0]?.product?.saleType ?? null,
         deliveryType: isPickup ? 'PICKUP' : 'DELIVERY',
         pickupLocation: isPickup ? deliveryAddress : null,
         deliveryAddress: isPickup ? null : deliveryAddress,
