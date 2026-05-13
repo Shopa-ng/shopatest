@@ -8,6 +8,8 @@ import { redisStore } from 'cache-manager-redis-yet';
 import { PrismaModule } from './prisma';
 import { AllExceptionsFilter } from './common/filters';
 import { LoggingInterceptor } from './common/interceptors';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 // Identity Domain
 import { AuthModule } from './modules/identity/auth';
@@ -113,7 +115,9 @@ import {
     // Shared
     AnalyticsModule,
   ],
+  controllers: [AppController],
   providers: [
+    AppService,
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
