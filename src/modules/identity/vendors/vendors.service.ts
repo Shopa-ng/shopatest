@@ -398,61 +398,82 @@ export class VendorsService {
     return updated;
   }
 
-  // ─── Available Balance ────────────────────────────────────────────────────────
+  // ─── Balance ──────────────────────────────────────────────────────────────────
 
-  async getAvailableBalance(userId: string) {
+  async getBalance(userId: string) {
     const vendor = await this.prisma.vendor.findUnique({ where: { userId } });
     if (!vendor) throw new NotFoundException('Vendor not found');
 
-    // Calculate earnings from completed orders with no unresolved disputes
-    // or where dispute window has expired
     const now = new Date();
+    const vendorId = vendor.id;
 
-    const completedOrders = await this.prisma.order.findMany({
-      where: {
-        vendorId: vendor.id,
-        status: 'COMPLETED',
-        OR: [
-          // No disputes raised
-          { disputes: { none: {} } },
-          // Dispute window expired
-          { disputeWindowExpiresAt: { lt: now } },
-          // All disputes resolved in vendor's favour
-          {
-            disputes: {
-              every: {
-                status: { in: ['RESOLVED', 'CLOSED'] },
-              },
-            },
-          },
-        ],
-      },
-      select: { totalAmount: true },
-    });
+    const [
+      disputeWindowOrders,
+      activeDisputeOrders,
+      refundDisputeOrders,
+      pendingWithdrawalsAgg,
+    ] = await Promise.all([
+      // Orders still within the 24hr dispute window (delivered but not yet clearable)
+      this.prisma.order.findMany({
+        where: {
+          vendorId,
+          status: { in: ['DELIVERED', 'COMPLETED'] },
+          disputeWindowExpiresAt: { gt: now },
+          disputes: { none: {} },
+        },
+        select: { totalAmount: true },
+      }),
+      // Orders with open or vendor-responded disputes
+      this.prisma.order.findMany({
+        where: {
+          vendorId,
+          disputes: { some: { status: { in: ['OPEN', 'VENDOR_RESPONDED'] } } },
+        },
+        select: { totalAmount: true },
+      }),
+      // Orders where dispute was resolved as refund
+      this.prisma.order.findMany({
+        where: { vendorId, refundStatus: 'PENDING_REFUND' },
+        select: { totalAmount: true },
+      }),
+      // Pending/approved withdrawal requests
+      this.prisma.withdrawalRequest.aggregate({
+        where: { vendorId, status: { in: ['PENDING', 'APPROVED'] } },
+        _sum: { amount: true },
+      }),
+    ]);
 
-    const totalEarned = completedOrders.reduce(
-      (sum, order) => sum + Number(order.totalAmount),
-      0,
+    const availableBalance = Number(vendor.availableBalance ?? 0);
+    const totalWithdrawn = Number(vendor.totalWithdrawn ?? 0);
+    const pendingWithdrawals = Number(pendingWithdrawalsAgg._sum.amount ?? 0);
+
+    const lockedInWindow = disputeWindowOrders.reduce(
+      (s, o) => s + Number(o.totalAmount) * 0.925, 0,
+    );
+    const lockedInDispute = activeDisputeOrders.reduce(
+      (s, o) => s + Number(o.totalAmount) * 0.925, 0,
+    );
+    const lockedRefund = refundDisputeOrders.reduce(
+      (s, o) => s + Number(o.totalAmount) * 0.925, 0,
     );
 
-    // Subtract pending and approved withdrawals
-    const pendingWithdrawals = await this.prisma.withdrawalRequest.aggregate({
-      where: {
-        vendorId: vendor.id,
-        status: { in: ['PENDING', 'APPROVED'] },
-      },
-      _sum: { amount: true },
-    });
-
-    const pendingAmount = Number(pendingWithdrawals._sum.amount ?? 0);
-    const availableBalance = Math.max(0, totalEarned - pendingAmount);
+    const withdrawableBalance = Math.max(
+      0,
+      availableBalance - lockedInWindow - lockedInDispute - lockedRefund - pendingWithdrawals,
+    );
 
     return {
       availableBalance,
-      totalEarned,
-      totalWithdrawn: Number(vendor.totalWithdrawn),
-      pendingWithdrawals: pendingAmount,
+      withdrawableBalance,
+      totalEarned: availableBalance + totalWithdrawn,
+      totalWithdrawn,
+      pendingWithdrawals,
     };
+  }
+
+  // kept for internal callers that still reference the old name
+  async getAvailableBalance(userId: string) {
+    return this.getBalance(userId);
   }
 
   // ─── Request Withdrawal ───────────────────────────────────────────────────────
@@ -465,11 +486,11 @@ export class VendorsService {
       throw new ForbiddenException('Only approved vendors can request withdrawals');
     }
 
-    // Check available balance
-    const balance = await this.getAvailableBalance(userId);
-    if (dto.amount > balance.availableBalance) {
+    // Validate against withdrawable (liquid) balance
+    const balance = await this.getBalance(userId);
+    if (dto.amount > balance.withdrawableBalance) {
       throw new BadRequestException(
-        `Withdrawal amount exceeds available balance of ₦${balance.availableBalance.toLocaleString()}`,
+        `Withdrawal amount exceeds withdrawable balance of ₦${balance.withdrawableBalance.toLocaleString()}`,
       );
     }
 

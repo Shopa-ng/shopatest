@@ -84,7 +84,7 @@ export class VendorsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get vendor available balance' })
   async getBalance(@CurrentUser('id') userId: string) {
-    return this.vendorsService.getAvailableBalance(userId);
+    return this.vendorsService.getBalance(userId);
   }
 
   @Post('me/withdrawal')
