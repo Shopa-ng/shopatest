@@ -2,6 +2,11 @@ import { IsString, IsOptional, IsUUID, IsEnum, IsArray } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { DisputeStatus } from '@prisma/client';
 
+export enum DisputeOutcome {
+  REFUND_REQUESTED = 'REFUND_REQUESTED',
+  NO_REFUND = 'NO_REFUND',
+}
+
 export class CreateDisputeDto {
   @ApiProperty()
   @IsUUID()
@@ -36,9 +41,9 @@ export class CreateDisputeDto {
 }
 
 export class ResolveDisputeDto {
-  @ApiProperty({ enum: DisputeStatus })
-  @IsEnum(DisputeStatus)
-  status: DisputeStatus;
+  @ApiProperty({ enum: DisputeOutcome, example: DisputeOutcome.REFUND_REQUESTED })
+  @IsEnum(DisputeOutcome)
+  outcome: DisputeOutcome;
 
   @ApiProperty({ example: 'Full refund issued to buyer' })
   @IsString()

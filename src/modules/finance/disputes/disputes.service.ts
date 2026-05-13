@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../../prisma';
 import { EmailService } from '../../communication/email';
 import { PushNotificationService } from '../../communication/push';
-import { CreateDisputeDto, ResolveDisputeDto } from './dto';
+import { CreateDisputeDto, ResolveDisputeDto, DisputeOutcome } from './dto';
 import { DisputeStatus, OrderStatus } from '@prisma/client';
 
 @Injectable()
@@ -295,7 +295,20 @@ export class DisputesService {
 
     const dispute = await this.prisma.dispute.findUnique({
       where: { id },
-      include: { order: { select: { vendorId: true } } },
+      include: {
+        order: {
+          include: {
+            buyer: { select: { firstName: true, lastName: true } },
+            vendor: {
+              include: {
+                user: {
+                  include: { campus: { select: { id: true, name: true } } },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!dispute) throw new NotFoundException('Dispute not found');
@@ -308,18 +321,73 @@ export class DisputesService {
       throw new BadRequestException('Cannot respond to a resolved or closed dispute');
     }
 
-    return this.prisma.dispute.update({
+    const updated = await this.prisma.dispute.update({
       where: { id },
       data: {
-        status: DisputeStatus.UNDER_REVIEW,
+        status: DisputeStatus.VENDOR_RESPONDED,
         resolution: `Vendor response: ${response}`,
         ...(vendorProofUrls?.length && { vendorProofUrls }),
       },
     });
+
+    // Notify campus admin
+    const campusId = dispute.order.vendor.user.campusId;
+    const storeName = dispute.order.vendor.storeName;
+    const orderNumber = dispute.order.orderNumber;
+    const customerName = `${dispute.order.buyer.firstName} ${dispute.order.buyer.lastName}`;
+
+    if (campusId) {
+      const campusAdmin = await this.prisma.user.findFirst({
+        where: { campusId, role: 'ADMIN' },
+        select: { id: true, email: true, firstName: true },
+      });
+
+      if (campusAdmin) {
+        this.emailService
+          .sendEmail({
+            to: campusAdmin.email,
+            subject: 'Vendor has responded to a dispute',
+            template: 'order-status',
+            context: {
+              firstName: campusAdmin.firstName,
+              orderNumber,
+              status: 'VENDOR_RESPONDED',
+              statusMessage:
+                `Hi ${campusAdmin.firstName}, the vendor ${storeName} has responded to dispute on order #${orderNumber}. ` +
+                `Customer: ${customerName}. ` +
+                `Please log in to review and resolve: https://uadmin.shopshopa.com.ng/admin/disputes/${id}`,
+            },
+          })
+          .catch(() => null);
+
+        this.pushService
+          .sendToUser(campusAdmin.id, {
+            title: 'Vendor Responded',
+            body: `${storeName} responded to dispute #${orderNumber}. Review now.`,
+          })
+          .catch(() => null);
+      }
+    }
+
+    return updated;
   }
 
   async resolve(id: string, adminId: string, resolveDto: ResolveDisputeDto) {
-    const dispute = await this.prisma.dispute.findUnique({ where: { id } });
+    const dispute = await this.prisma.dispute.findUnique({
+      where: { id },
+      include: {
+        order: {
+          include: {
+            buyer: { select: { id: true, email: true, firstName: true, lastName: true } },
+            vendor: {
+              include: {
+                user: { select: { id: true, email: true, firstName: true } },
+              },
+            },
+          },
+        },
+      },
+    });
 
     if (!dispute) throw new NotFoundException('Dispute not found');
 
@@ -327,13 +395,147 @@ export class DisputesService {
       throw new BadRequestException('Dispute is already resolved or closed');
     }
 
-    return this.prisma.dispute.update({
-      where: { id },
-      data: {
-        status: resolveDto.status,
-        resolution: resolveDto.resolution,
-        resolvedById: adminId,
-      },
-    });
+    const { outcome, resolution } = resolveDto;
+    const { order } = dispute;
+    const { buyer, vendor } = order;
+    const orderNumber = order.orderNumber;
+    const totalAmount = Number(order.totalAmount).toLocaleString('en-NG');
+    const customerName = `${buyer.firstName} ${buyer.lastName}`;
+    const isRefund = outcome === DisputeOutcome.REFUND_REQUESTED;
+
+    // Update dispute + conditionally set refundStatus on order
+    await this.prisma.$transaction([
+      this.prisma.dispute.update({
+        where: { id },
+        data: { status: DisputeStatus.RESOLVED, resolution, resolvedById: adminId },
+      }),
+      ...(isRefund
+        ? [this.prisma.order.update({ where: { id: order.id }, data: { refundStatus: 'PENDING_REFUND' } })]
+        : []),
+    ]);
+
+    if (isRefund) {
+      // Email + push to buyer
+      this.emailService
+        .sendEmail({
+          to: buyer.email,
+          subject: `Your dispute on #${orderNumber} has been resolved`,
+          template: 'order-status',
+          context: {
+            firstName: buyer.firstName,
+            orderNumber,
+            status: 'DISPUTE_RESOLVED',
+            statusMessage:
+              `Your dispute on order #${orderNumber} has been resolved in your favour. ` +
+              `A refund will be processed within 48 hours. Reason: ${resolution}`,
+          },
+        })
+        .catch(() => null);
+      this.pushService
+        .sendToUser(buyer.id, {
+          title: 'Dispute Resolved — Refund Coming',
+          body: `Your dispute on #${orderNumber} was resolved in your favour. Refund within 48 hours.`,
+        })
+        .catch(() => null);
+
+      // Email + push to vendor
+      this.emailService
+        .sendEmail({
+          to: vendor.user.email,
+          subject: `Dispute resolved — order #${orderNumber}`,
+          template: 'order-status',
+          context: {
+            firstName: vendor.user.firstName,
+            orderNumber,
+            status: 'DISPUTE_RESOLVED',
+            statusMessage:
+              `The dispute on order #${orderNumber} has been resolved. The customer will be refunded. ` +
+              `Reason from admin: ${resolution}`,
+          },
+        })
+        .catch(() => null);
+      this.pushService
+        .sendToUser(vendor.user.id, {
+          title: 'Dispute Resolved',
+          body: `Dispute on order #${orderNumber} resolved. Customer will be refunded.`,
+        })
+        .catch(() => null);
+
+      // Email + push to all super admins
+      const superAdmins = await this.prisma.user.findMany({
+        where: { role: 'SUPER_ADMIN' },
+        select: { id: true, email: true },
+      });
+      for (const sa of superAdmins) {
+        this.emailService
+          .sendEmail({
+            to: sa.email,
+            subject: `Refund required for order #${orderNumber}`,
+            template: 'order-status',
+            context: {
+              firstName: 'Admin',
+              orderNumber,
+              status: 'REFUND_REQUIRED',
+              statusMessage:
+                `Refund required for order #${orderNumber} — ₦${totalAmount}. Customer: ${customerName}. ` +
+                `Resolve at: https://sadmin.shopshopa.com.ng/superadmin/disputes`,
+            },
+          })
+          .catch(() => null);
+        this.pushService
+          .sendToUser(sa.id, {
+            title: 'Refund Required',
+            body: `#${orderNumber} — ₦${totalAmount} — refund required`,
+          })
+          .catch(() => null);
+      }
+    } else {
+      // NO_REFUND — email + push to buyer and vendor only
+      this.emailService
+        .sendEmail({
+          to: buyer.email,
+          subject: `Update on your dispute — order #${orderNumber}`,
+          template: 'order-status',
+          context: {
+            firstName: buyer.firstName,
+            orderNumber,
+            status: 'DISPUTE_CLOSED',
+            statusMessage:
+              `Your dispute on order #${orderNumber} has been reviewed. Decision: No refund. ` +
+              `Reason: ${resolution}. If you have concerns, contact support.`,
+          },
+        })
+        .catch(() => null);
+      this.pushService
+        .sendToUser(buyer.id, {
+          title: 'Dispute Decision',
+          body: `Your dispute on #${orderNumber} has been reviewed. No refund will be issued.`,
+        })
+        .catch(() => null);
+
+      this.emailService
+        .sendEmail({
+          to: vendor.user.email,
+          subject: `Dispute resolved — order #${orderNumber}`,
+          template: 'order-status',
+          context: {
+            firstName: vendor.user.firstName,
+            orderNumber,
+            status: 'DISPUTE_CLOSED',
+            statusMessage:
+              `The dispute on order #${orderNumber} has been resolved. No refund will be issued. ` +
+              `Reason: ${resolution}`,
+          },
+        })
+        .catch(() => null);
+      this.pushService
+        .sendToUser(vendor.user.id, {
+          title: 'Dispute Resolved',
+          body: `Dispute on order #${orderNumber} resolved. No refund issued.`,
+        })
+        .catch(() => null);
+    }
+
+    return { resolved: true, outcome, orderId: order.id };
   }
 }

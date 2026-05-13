@@ -45,6 +45,7 @@ enum PaymentStatus {
 enum DisputeStatus {
   OPEN
   UNDER_REVIEW
+  VENDOR_RESPONDED
   RESOLVED
   CLOSED
 }
