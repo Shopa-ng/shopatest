@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
+import { ScheduleModule } from '@nestjs/schedule';
 import { redisStore } from 'cache-manager-redis-yet';
 
 import { PrismaModule } from './prisma';
@@ -10,6 +11,7 @@ import { AllExceptionsFilter } from './common/filters';
 import { LoggingInterceptor } from './common/interceptors';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { TasksModule } from './tasks/tasks.module';
 
 // Identity Domain
 import { AuthModule } from './modules/identity/auth';
@@ -54,6 +56,7 @@ import {
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [
@@ -114,6 +117,8 @@ import {
     UploadModule,
     // Shared
     AnalyticsModule,
+    // Scheduled tasks
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [

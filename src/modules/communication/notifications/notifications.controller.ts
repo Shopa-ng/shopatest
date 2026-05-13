@@ -7,11 +7,18 @@ import {
   Param,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiProperty, ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { IsString } from 'class-validator';
 import { NotificationsService } from './notifications.service';
 import { RegisterDeviceDto } from './dto';
 import { JwtAuthGuard } from 'src/modules/identity/auth/guards';
 import { CurrentUser } from 'src/common/decorators';
+
+class SaveFcmTokenDto {
+  @ApiProperty()
+  @IsString()
+  token: string;
+}
 
 @ApiTags('Notifications')
 @Controller('notifications')
@@ -52,5 +59,14 @@ export class NotificationsController {
     @Body() dto: RegisterDeviceDto,
   ) {
     return this.notificationsService.registerDevice(userId, dto.fcmToken);
+  }
+
+  @Post('fcm-token')
+  @ApiOperation({ summary: 'Save FCM token after login' })
+  async saveFcmToken(
+    @CurrentUser('id') userId: string,
+    @Body() dto: SaveFcmTokenDto,
+  ) {
+    return this.notificationsService.saveFcmToken(userId, dto.token);
   }
 }

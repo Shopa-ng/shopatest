@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma';
 import { EmailService } from '../../communication/email';
+import { PushNotificationService } from '../../communication/push';
 import {
   RegisterVendorDto,
   UpdateVendorDto,
@@ -21,6 +22,7 @@ export class VendorsService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private pushService: PushNotificationService,
   ) {}
 
   // ─── Vendor Registration ─────────────────────────────────────────────────────
@@ -117,22 +119,30 @@ export class VendorsService {
     this.prisma.user
       .findFirst({
         where: { campusId: dto.campusId, role: 'ADMIN' },
-        select: { email: true, firstName: true },
+        select: { id: true, email: true, firstName: true },
       })
       .then((admin) => {
         if (!admin) return;
         const categoryNames = categories.map((c) => c.name).join(', ');
-        return this.emailService.sendEmail({
-          to: admin.email,
-          subject: 'New vendor application on Shopa',
-          template: 'order-status',
-          context: {
-            firstName: admin.firstName,
-            orderNumber: result.vendor.id,
-            status: 'NEW_VENDOR',
-            statusMessage: `Hi ${admin.firstName}, a new vendor has applied to sell on ${campus.name}.\n\nVendor Details:\n• Store Name: ${dto.storeName}\n• Vendor Name: ${dto.firstName} ${dto.lastName}\n• Email: ${dto.email}\n• Categories: ${categoryNames}\n\nPlease log in to your admin dashboard to review and approve or reject this application.`,
-          },
-        });
+        this.emailService
+          .sendEmail({
+            to: admin.email,
+            subject: 'New vendor application on Shopa',
+            template: 'order-status',
+            context: {
+              firstName: admin.firstName,
+              orderNumber: result.vendor.id,
+              status: 'NEW_VENDOR',
+              statusMessage: `Hi ${admin.firstName}, a new vendor has applied to sell on ${campus.name}.\n\nVendor Details:\n• Store Name: ${dto.storeName}\n• Vendor Name: ${dto.firstName} ${dto.lastName}\n• Email: ${dto.email}\n• Categories: ${categoryNames}\n\nPlease log in to your admin dashboard to review and approve or reject this application.`,
+            },
+          })
+          .catch(() => null);
+        this.pushService
+          .sendToUser(admin.id, {
+            title: 'New Vendor Application',
+            body: `${dto.storeName} has applied to sell on ${campus.name}. Review in your dashboard.`,
+          })
+          .catch(() => null);
       })
       .catch(() => null);
 
@@ -329,7 +339,7 @@ export class VendorsService {
     const vendor = await this.prisma.vendor.findUnique({
       where: { id },
       include: {
-        user: { select: { email: true, firstName: true } },
+        user: { select: { id: true, email: true, firstName: true } },
       },
     });
     if (!vendor) throw new NotFoundException('Vendor not found');
@@ -356,6 +366,12 @@ export class VendorsService {
           },
         })
         .catch(() => null);
+      this.pushService
+        .sendToUser(vendor.user.id, {
+          title: 'Application Approved!',
+          body: 'Congratulations! Your vendor application has been approved. Start listing products.',
+        })
+        .catch(() => null);
     } else {
       this.emailService
         .sendEmail({
@@ -367,6 +383,12 @@ export class VendorsService {
             storeName: vendor.storeName,
             reason: reason ?? 'Your application did not meet our requirements.',
           },
+        })
+        .catch(() => null);
+      this.pushService
+        .sendToUser(vendor.user.id, {
+          title: 'Application Not Approved',
+          body: 'Your vendor application was not approved. Contact support for more information.',
         })
         .catch(() => null);
     }

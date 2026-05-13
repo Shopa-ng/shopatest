@@ -11,6 +11,7 @@ import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../../prisma';
 import { EmailService } from '../../communication/email';
+import { PushNotificationService } from '../../communication/push';
 import { InitializePaymentDto, PaystackWebhookDto } from './dto';
 
 @Injectable()
@@ -21,6 +22,7 @@ export class PaymentsService {
     private prisma: PrismaService,
     private configService: ConfigService,
     private emailService: EmailService,
+    private pushService: PushNotificationService,
   ) {}
 
   async initializePayment(userId: string, dto: InitializePaymentDto) {
@@ -146,7 +148,7 @@ export class PaymentsService {
             buyer: { select: { firstName: true, lastName: true } },
             vendor: {
               include: {
-                user: { select: { email: true, firstName: true } },
+                user: { select: { id: true, email: true, firstName: true } },
               },
             },
           },
@@ -219,6 +221,14 @@ export class PaymentsService {
         else this.logger.error(`[handleSuccessfulPayment] Vendor email returned false (send failed) for ${vendorEmail}`);
       })
       .catch((e) => this.logger.error(`[handleSuccessfulPayment] Vendor email threw exception: ${e?.message}`));
+
+    // Push to vendor
+    this.pushService
+      .sendToUser(order.vendor.user.id, {
+        title: 'New Order Received!',
+        body: `You have a new order #${order.orderNumber}. Log in to accept or decline.`,
+      })
+      .catch(() => null);
 
     return order.id;
   }

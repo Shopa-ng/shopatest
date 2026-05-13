@@ -180,7 +180,10 @@ export class OrdersService {
 
     // Notify vendor of new order via push
     this.pushService
-      .notifyNewOrder(order.vendor.userId, order.orderNumber)
+      .sendToUser(order.vendor.userId, {
+        title: 'New Order Received!',
+        body: `You have a new order #${order.orderNumber}. Log in to accept or decline.`,
+      })
       .catch(() => null);
 
     return order;
@@ -207,11 +210,6 @@ export class OrdersService {
       },
     });
 
-    // Notify buyer via push
-    this.pushService
-      .notifyOrderStatusChange(order.buyerId, order.orderNumber, 'CONFIRMED')
-      .catch(() => null);
-
     // Confirmation email to buyer
     const isPickup = order.deliveryMethod?.toUpperCase() === 'PICKUP';
     const deliveryDate = expectedDelivery ? new Date(expectedDelivery) : (() => { const d = new Date(); d.setDate(d.getDate() + 2); return d; })();
@@ -232,6 +230,14 @@ export class OrdersService {
           status: 'CONFIRMED',
           statusMessage: `Hi ${order.buyer.firstName}, your order #${order.orderNumber} has been accepted by ${order.vendor.storeName}. Expected delivery: ${deliveryDateStr}. Delivery: ${deliveryDetail}. Total: ₦${Number(order.totalAmount).toLocaleString('en-NG')}. You will be notified once your order is delivered.`,
         },
+      })
+      .catch(() => null);
+
+    // Push: order confirmed
+    this.pushService
+      .sendToUser(order.buyerId, {
+        title: 'Order Confirmed!',
+        body: `Your order #${order.orderNumber} from ${order.vendor.storeName} has been accepted. Expected delivery: ${deliveryDateStr}.`,
       })
       .catch(() => null);
 
@@ -256,11 +262,6 @@ export class OrdersService {
       },
     });
 
-    // Notify buyer via push
-    this.pushService
-      .notifyOrderStatusChange(order.buyerId, order.orderNumber, 'CANCELLED')
-      .catch(() => null);
-
     // Email buyer with decline notice and refund info
     this.emailService
       .sendEmail({
@@ -274,6 +275,14 @@ export class OrdersService {
           status: 'DECLINED',
           statusMessage: `Hi ${order.buyer.firstName}, unfortunately your order #${order.orderNumber} from ${order.vendor.storeName} was declined. Your payment will be refunded within 24-72 hours. If you have questions, please contact support.`,
         },
+      })
+      .catch(() => null);
+
+    // Push: order declined
+    this.pushService
+      .sendToUser(order.buyerId, {
+        title: 'Order Declined',
+        body: `Your order #${order.orderNumber} was declined. Email shopanigeria@gmail.com for a refund.`,
       })
       .catch(() => null);
 
@@ -304,14 +313,41 @@ export class OrdersService {
       data.disputeWindowExpiresAt = window;
     }
 
-    const updated = await this.prisma.order.update({ where: { id }, data });
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const updatedOrder = await tx.order.update({ where: { id }, data });
 
-    // Notify buyer of status change via push
-    this.pushService
-      .notifyOrderStatusChange(order.buyerId, order.orderNumber, updateDto.status)
-      .catch(() => null);
+      if (updateDto.status === OrderStatus.DELIVERED) {
+        for (const item of order.orderItems) {
+          const product = await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.quantity } },
+          });
+          if (product.stock <= 0) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { isActive: false, stock: 0 },
+            });
+          }
+        }
+      }
 
-    // Notify buyer via email
+      return updatedOrder;
+    });
+
+    // Push and email — titles/bodies scoped to DELIVERED; other transitions use generic
+    if (updateDto.status === OrderStatus.DELIVERED) {
+      this.pushService
+        .sendToUser(order.buyerId, {
+          title: 'Order Delivered!',
+          body: `Your order #${order.orderNumber} has been marked as delivered. Please confirm receipt.`,
+        })
+        .catch(() => null);
+    } else {
+      this.pushService
+        .notifyOrderStatusChange(order.buyerId, order.orderNumber, updateDto.status)
+        .catch(() => null);
+    }
+
     this.emailService
       .sendOrderStatusUpdate(order.buyerId, order.orderNumber, updateDto.status)
       .catch(() => null);
@@ -354,6 +390,7 @@ export class OrdersService {
         buyer: { select: { email: true, firstName: true, lastName: true } },
         payment: { select: { reference: true } },
         vendor: { select: { storeName: true } },
+        orderItems: { select: { productId: true, quantity: true } },
       },
     });
     if (!order) throw new NotFoundException('Order not found');
