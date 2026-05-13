@@ -55,7 +55,7 @@ export class PaymentsService {
     const reference = `SHOPA-${uuidv4().substring(0, 8).toUpperCase()}`;
 
     // Create payment record
-    const payment = await this.prisma.payment.create({
+    await this.prisma.payment.create({
       data: {
         orderId,
         amount: order.totalAmount,
@@ -163,28 +163,29 @@ export class PaymentsService {
     this.logger.log(`[handleSuccessfulPayment] Found order: ${order.id}, status: ${order.status}`);
     this.logger.log(`[handleSuccessfulPayment] Vendor email: ${order.vendor?.user?.email ?? 'MISSING'}, firstName: ${order.vendor?.user?.firstName ?? 'MISSING'}`);
 
-    // Guard: skip if already PAID to prevent duplicate emails
-    if (order.status === OrderStatus.PAID) {
-      this.logger.log(`[handleSuccessfulPayment] Order ${order.id} already PAID — skipping duplicate processing`);
-      return order.id;
+    const alreadyPaid = order.status === OrderStatus.PAID;
+
+    if (!alreadyPaid) {
+      // Update payment to HELD (escrow)
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: PaymentStatus.HELD,
+          escrowReleaseDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+      this.logger.log(`[handleSuccessfulPayment] Payment ${payment.id} updated to HELD`);
+
+      // Update order to PAID
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: { status: OrderStatus.PAID },
+      });
+      this.logger.log(`[handleSuccessfulPayment] Order ${order.id} updated to PAID`);
+    } else {
+      // Webhook already marked order PAID — skip DB updates but still send vendor email
+      this.logger.log(`[handleSuccessfulPayment] Order ${order.id} already PAID (likely processed by webhook) — skipping DB updates, proceeding to vendor email`);
     }
-
-    // Update payment to HELD (escrow)
-    await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: PaymentStatus.HELD,
-        escrowReleaseDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
-    this.logger.log(`[handleSuccessfulPayment] Payment ${payment.id} updated to HELD`);
-
-    // Update order to PAID
-    await this.prisma.order.update({
-      where: { id: order.id },
-      data: { status: OrderStatus.PAID },
-    });
-    this.logger.log(`[handleSuccessfulPayment] Order ${order.id} updated to PAID`);
 
     // Notify vendor of new paid order
     const vendorEmail = order.vendor?.user?.email;
@@ -200,7 +201,7 @@ export class PaymentsService {
       .join(', ');
     const delivery = order.deliveryAddress ?? order.notes ?? 'N/A';
 
-    this.logger.log(`[handleSuccessfulPayment] Attempting vendor email to: ${vendorEmail}`);
+    this.logger.log(`[handleSuccessfulPayment] Attempting vendor email to: ${vendorEmail} (alreadyPaid=${alreadyPaid})`);
     this.emailService
       .sendEmail({
         to: vendorEmail,
