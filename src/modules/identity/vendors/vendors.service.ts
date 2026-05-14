@@ -463,12 +463,12 @@ export class VendorsService {
       // else: active/pending dispute, or still within the 24hr window
     }
 
-    withdrawableBalance = Math.max(0, withdrawableBalance - pendingWithdrawals);
+    withdrawableBalance = Math.max(0, withdrawableBalance - pendingWithdrawals - totalWithdrawn);
 
     return {
-      availableBalance,
+      availableBalance: Math.max(0, availableBalance - totalWithdrawn),
       withdrawableBalance,
-      totalEarned: availableBalance + totalWithdrawn,
+      totalEarned: availableBalance,
       totalWithdrawn,
       pendingWithdrawals,
     };
@@ -482,7 +482,18 @@ export class VendorsService {
   // ─── Request Withdrawal ───────────────────────────────────────────────────────
 
   async requestWithdrawal(userId: string, dto: RequestWithdrawalDto) {
-    const vendor = await this.prisma.vendor.findUnique({ where: { userId } });
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { userId },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            campus: { select: { name: true } },
+          },
+        },
+      },
+    });
     if (!vendor) throw new NotFoundException('Vendor not found');
 
     if (vendor.status !== 'APPROVED') {
@@ -497,23 +508,55 @@ export class VendorsService {
       );
     }
 
-    const [withdrawal] = await this.prisma.$transaction([
-      this.prisma.withdrawalRequest.create({
-        data: {
-          amount: dto.amount,
-          bankName: dto.bankName,
-          accountNumber: dto.accountNumber,
-          accountName: dto.accountName,
-          vendorId: vendor.id,
-          status: 'PENDING',
-        },
-      }),
-      // Reserve the amount — deduct from availableBalance immediately
-      this.prisma.vendor.update({
-        where: { id: vendor.id },
-        data: { availableBalance: { decrement: dto.amount } },
-      }),
-    ]);
+    const withdrawal = await this.prisma.withdrawalRequest.create({
+      data: {
+        amount: dto.amount,
+        bankName: dto.bankName,
+        accountNumber: dto.accountNumber,
+        accountName: dto.accountName,
+        vendorId: vendor.id,
+        status: 'PENDING',
+      },
+    });
+
+    // Notify all super admins
+    const amountStr = dto.amount.toLocaleString('en-NG');
+    const campusName = vendor.user.campus?.name ?? 'N/A';
+    const vendorName = `${vendor.user.firstName} ${vendor.user.lastName}`;
+
+    this.prisma.user
+      .findMany({ where: { role: 'SUPER_ADMIN' }, select: { id: true, email: true, firstName: true } })
+      .then((superAdmins) => {
+        for (const sa of superAdmins) {
+          this.emailService
+            .sendEmail({
+              to: sa.email,
+              subject: 'New withdrawal request on Shopa',
+              template: 'order-status',
+              context: {
+                firstName: sa.firstName,
+                orderNumber: withdrawal.id,
+                status: 'WITHDRAWAL_REQUEST',
+                statusMessage:
+                  `Hi ${sa.firstName}, a vendor has requested a withdrawal.\n\n` +
+                  `Vendor: ${vendor.storeName} (${vendorName})\n` +
+                  `Campus: ${campusName}\n` +
+                  `Amount: ₦${amountStr}\n` +
+                  `Bank: ${dto.bankName} — ${dto.accountNumber} (${dto.accountName})\n\n` +
+                  `Please log in to process this request: https://sadmin.shopshopa.com.ng/superadmin/withdrawals`,
+              },
+            })
+            .catch(() => null);
+
+          this.pushService
+            .sendToUser(sa.id, {
+              title: 'New Withdrawal Request',
+              body: `${vendor.storeName} has requested ₦${amountStr} withdrawal. Review now.`,
+            })
+            .catch(() => null);
+        }
+      })
+      .catch(() => null);
 
     return withdrawal;
   }
@@ -585,17 +628,14 @@ export class VendorsService {
         where: { id },
         data: { status: dto.status, note: dto.note, processedById: adminId, processedAt: new Date() },
       }),
-      dto.status === 'APPROVED'
-        ? // Amount was already deducted from availableBalance on request — just record as withdrawn
-          this.prisma.vendor.update({
-            where: { id: withdrawal.vendorId },
-            data: { totalWithdrawn: { increment: withdrawal.amount } },
-          })
-        : // Rejected — restore the reserved amount back to availableBalance
-          this.prisma.vendor.update({
-            where: { id: withdrawal.vendorId },
-            data: { availableBalance: { increment: withdrawal.amount } },
-          }),
+      // On APPROVED: record as withdrawn — this is what getBalance subtracts from withdrawableBalance
+      // On REJECTED: no balance change needed — PENDING request dropping out of the sum restores withdrawableBalance automatically
+      this.prisma.vendor.update({
+        where: { id: withdrawal.vendorId },
+        data: dto.status === 'APPROVED'
+          ? { totalWithdrawn: { increment: withdrawal.amount } }
+          : {},
+      }),
     ]);
 
     const { bankName, accountNumber, accountName } = withdrawal;
