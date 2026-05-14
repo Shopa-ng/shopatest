@@ -68,27 +68,11 @@ export class ProductsService {
     };
     const resolvedSortBy = allowedSortFields[sortBy] ?? 'createdAt';
 
-    // When filtering by categoryId, also include products whose subCategory belongs to that category
-    let categoryFilter: Prisma.ProductWhereInput | undefined;
-    if (categoryId) {
-      const subCategories = await this.prisma.subCategory.findMany({
-        where: { categoryId },
-        select: { id: true },
-      });
-      const subCategoryIds = subCategories.map((s) => s.id);
-      categoryFilter = {
-        OR: [
-          { categoryId },
-          ...(subCategoryIds.length ? [{ subCategoryId: { in: subCategoryIds } }] : []),
-        ],
-      };
-    }
-
     const where: Prisma.ProductWhereInput = {
       isActive: true,
       ...(campusId && { campusId }),
       ...(vendorId && { vendorId }),
-      ...(categoryFilter ?? {}),
+      ...(categoryId && { OR: [{ categoryId }, { subCategoryId: categoryId }] }),
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
