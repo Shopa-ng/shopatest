@@ -6,6 +6,8 @@ import {
   UploadedFiles,
   UseGuards,
   UseInterceptors,
+  ParseBoolPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import {
@@ -47,8 +49,9 @@ export class UploadController {
   async uploadImage(
     @UploadedFile() file: Express.Multer.File,
     @Query('folder') folder?: string,
+    @Query('removeBackground', new DefaultValuePipe(false), ParseBoolPipe) removeBackground?: boolean,
   ) {
-    return this.uploadService.uploadImage(file, folder || 'shopa');
+    return this.uploadService.uploadImage(file, folder || 'shopa', removeBackground);
   }
 
   @Post('images')

@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
@@ -9,6 +10,8 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async create(vendorUserId: string, createDto: CreateProductDto) {
@@ -51,6 +54,8 @@ export class ProductsService {
       sortBy = 'createdAt',
       sortOrder = 'desc',
     } = query;
+
+    this.logger.log(`[findAll] campusId=${campusId ?? 'none'} vendorId=${vendorId ?? 'none'} search=${search ?? 'none'}`);
 
     const where: Prisma.ProductWhereInput = {
       isActive: true,

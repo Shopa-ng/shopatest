@@ -26,6 +26,7 @@ export class UploadService {
   async uploadImage(
     file: Express.Multer.File,
     folder: string = 'shopa',
+    removeBackground: boolean = false,
   ): Promise<UploadResult> {
     if (!file) {
       throw new BadRequestException('No file provided');
@@ -51,7 +52,16 @@ export class UploadService {
     }
 
     try {
-      const result = await this.uploadToCloudinary(file.buffer, folder);
+      let buffer = file.buffer;
+
+      if (removeBackground) {
+        buffer = await this.removeBackground(buffer).catch((e) => {
+          this.logger.warn(`Background removal failed, using original: ${e?.message}`);
+          return file.buffer;
+        });
+      }
+
+      const result = await this.uploadToCloudinary(buffer, folder);
 
       return {
         url: result.secure_url,
@@ -64,6 +74,29 @@ export class UploadService {
       this.logger.error('Cloudinary upload error:', error);
       throw new BadRequestException('Failed to upload file');
     }
+  }
+
+  private async removeBackground(buffer: Buffer): Promise<Buffer> {
+    const apiKey = this.configService.get<string>('REMOVE_BG_API_KEY') ?? process.env.REMOVE_BG_API_KEY;
+    if (!apiKey) throw new Error('REMOVE_BG_API_KEY not configured');
+
+    const formData = new FormData();
+    formData.append('image_file', new Blob([new Uint8Array(buffer)]), 'image.png');
+    formData.append('size', 'auto');
+
+    const response = await fetch('https://api.remove.bg/v1.0/removebg', {
+      method: 'POST',
+      headers: { 'X-Api-Key': apiKey },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`remove.bg error ${response.status}: ${err}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
   }
 
   async uploadMultipleImages(
@@ -98,10 +131,7 @@ export class UploadService {
           {
             folder,
             resource_type: 'image',
-            transformation: [
-              { quality: 'auto:good' },
-              { fetch_format: 'auto' },
-            ],
+            transformation: [{ quality: 'auto:good' }, { fetch_format: 'auto' }],
           },
           (error, result) => {
             if (error) {
