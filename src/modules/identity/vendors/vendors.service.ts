@@ -406,8 +406,6 @@ export class VendorsService {
 
     const now = new Date();
     const vendorId = vendor.id;
-    const FEE = 0.925;
-
     const [allDelivered, pendingWithdrawalsAgg] = await Promise.all([
       // Every delivered/completed order with its dispute state
       this.prisma.order.findMany({
@@ -432,7 +430,7 @@ export class VendorsService {
     let withdrawableBalance = 0;
 
     for (const order of allDelivered) {
-      const earned = Number(order.totalAmount) * FEE;
+      const earned = Number(order.totalAmount);
       const disputeStatuses = order.disputes.map((d) => d.status);
       const hasActiveDispute = disputeStatuses.some((s) =>
         ['OPEN', 'VENDOR_RESPONDED'].includes(s),
