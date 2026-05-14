@@ -144,7 +144,7 @@ export class VendorsController {
 
   @Patch('admin/withdrawals/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Process withdrawal request (admin)' })
   async processWithdrawal(

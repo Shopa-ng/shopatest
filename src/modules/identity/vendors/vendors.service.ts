@@ -539,7 +539,14 @@ export class VendorsService {
         vendor: {
           select: {
             storeName: true,
-            user: { select: { email: true, firstName: true, lastName: true } },
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+                campus: { select: { name: true } },
+              },
+            },
           },
         },
       },
@@ -591,33 +598,50 @@ export class VendorsService {
           }),
     ]);
 
-    const { bankName, accountNumber } = withdrawal;
+    const { bankName, accountNumber, accountName } = withdrawal;
+    const { firstName } = withdrawal.vendor.user;
 
-    // Email vendor
-    this.emailService
-      .sendEmail({
-        to: withdrawal.vendor.user.email,
-        subject: dto.status === 'APPROVED' ? '✅ Withdrawal Processed' : 'Withdrawal Request Update',
-        template: 'withdrawal-update',
-        context: {
-          approved: dto.status === 'APPROVED',
-          amount: amountStr,
-          resolution: dto.status === 'APPROVED'
-            ? `Your withdrawal of ₦${amountStr} has been processed to ${bankName} - ${accountNumber}.`
-            : (dto.note ?? 'Your withdrawal request was not approved.'),
-        },
-      })
-      .catch(() => null);
+    if (dto.status === 'APPROVED') {
+      this.emailService
+        .sendEmail({
+          to: withdrawal.vendor.user.email,
+          subject: 'Your Shopa withdrawal has been processed',
+          template: 'withdrawal-update',
+          context: {
+            approved: true,
+            amount: amountStr,
+            resolution: `Hi ${firstName}, your withdrawal of ₦${amountStr} has been processed to ${bankName} - ${accountNumber} (${accountName}). It should reflect in your account within 24 hours.`,
+          },
+        })
+        .catch(() => null);
 
-    // Push vendor
-    this.pushService
-      .sendToUser(withdrawal.vendor.user.id, {
-        title: dto.status === 'APPROVED' ? 'Withdrawal Processed' : 'Withdrawal Not Approved',
-        body: dto.status === 'APPROVED'
-          ? `Your withdrawal of ₦${amountStr} has been processed to ${bankName} - ${accountNumber}.`
-          : (dto.note ?? 'Your withdrawal request was not approved.'),
-      })
-      .catch(() => null);
+      this.pushService
+        .sendToUser(withdrawal.vendor.user.id, {
+          title: 'Withdrawal Processed',
+          body: `₦${amountStr} sent to ${bankName} ${accountNumber}`,
+        })
+        .catch(() => null);
+    } else {
+      this.emailService
+        .sendEmail({
+          to: withdrawal.vendor.user.email,
+          subject: 'Your Shopa withdrawal request was rejected',
+          template: 'withdrawal-update',
+          context: {
+            approved: false,
+            amount: amountStr,
+            resolution: `Hi ${firstName}, your withdrawal request of ₦${amountStr} was rejected. Reason: ${dto.note ?? 'No reason provided'}. Your withdrawable balance has been restored. Please contact support if you have questions.`,
+          },
+        })
+        .catch(() => null);
+
+      this.pushService
+        .sendToUser(withdrawal.vendor.user.id, {
+          title: 'Withdrawal Not Approved',
+          body: `Your withdrawal request of ₦${amountStr} was rejected. ${dto.note ?? ''}`.trim(),
+        })
+        .catch(() => null);
+    }
 
     return updated;
   }
