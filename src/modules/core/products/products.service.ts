@@ -55,13 +55,40 @@ export class ProductsService {
       sortOrder = 'desc',
     } = query;
 
-    this.logger.log(`[findAll] campusId=${campusId ?? 'none'} vendorId=${vendorId ?? 'none'} search=${search ?? 'none'}`);
+    this.logger.log(`[findAll] campusId=${campusId ?? 'none'} vendorId=${vendorId ?? 'none'} categoryId=${categoryId ?? 'none'} sortBy=${sortBy}`);
+
+    // Map frontend sort aliases to valid Prisma Product fields
+    const allowedSortFields: Record<string, string> = {
+      createdAt: 'createdAt',
+      price: 'price',
+      name: 'name',
+      stock: 'stock',
+      popular: 'createdAt', // no order count field — fall back to newest
+      newest: 'createdAt',
+    };
+    const resolvedSortBy = allowedSortFields[sortBy] ?? 'createdAt';
+
+    // When filtering by categoryId, also include products whose subCategory belongs to that category
+    let categoryFilter: Prisma.ProductWhereInput | undefined;
+    if (categoryId) {
+      const subCategories = await this.prisma.subCategory.findMany({
+        where: { categoryId },
+        select: { id: true },
+      });
+      const subCategoryIds = subCategories.map((s) => s.id);
+      categoryFilter = {
+        OR: [
+          { categoryId },
+          ...(subCategoryIds.length ? [{ subCategoryId: { in: subCategoryIds } }] : []),
+        ],
+      };
+    }
 
     const where: Prisma.ProductWhereInput = {
       isActive: true,
       ...(campusId && { campusId }),
       ...(vendorId && { vendorId }),
-      ...(categoryId && { categoryId }),
+      ...(categoryFilter ?? {}),
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
@@ -77,7 +104,7 @@ export class ProductsService {
           vendor: { select: { storeName: true, rating: true } },
           category: { select: { name: true } },
         },
-        orderBy: { [sortBy]: sortOrder },
+        orderBy: { [resolvedSortBy]: sortOrder },
         skip: (page - 1) * limit,
         take: limit,
       }),
