@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -153,5 +154,27 @@ export class VendorsController {
     @Body() dto: ProcessWithdrawalDto,
   ) {
     return this.vendorsService.processWithdrawal(id, adminId, dto);
+  }
+
+  @Get('admin/deletion-requests')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get vendor deletion requests (admin)' })
+  async getDeletionRequests(
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: string,
+    @CurrentUser('campusId') campusId: string,
+  ) {
+    return this.vendorsService.getDeletionRequests(role, campusId);
+  }
+
+  @Delete('admin/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete vendor account (super admin)' })
+  async deleteVendor(@Param('id') id: string) {
+    return this.vendorsService.deleteVendor(id);
   }
 } 

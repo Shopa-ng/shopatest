@@ -47,8 +47,12 @@ export class OrdersController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get order by ID' })
-  async findById(@Param('id') id: string, @CurrentUser('id') userId: string) {
-    return this.ordersService.findById(id, userId);
+  async findById(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @CurrentUser('role') role: string,
+  ) {
+    return this.ordersService.findById(id, userId, role);
   }
 
   @Post()

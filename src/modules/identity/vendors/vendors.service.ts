@@ -683,4 +683,45 @@ export class VendorsService {
 
     return updated;
   }
+
+  // ─── Deletion Requests (Admin) ────────────────────────────────────────────────
+
+  async getDeletionRequests(role: string, campusId?: string) {
+    return this.prisma.vendorDeletionRequest.findMany({
+      where: {
+        status: 'PENDING',
+        ...(role === 'ADMIN' && campusId
+          ? { vendor: { user: { campusId } } }
+          : {}),
+      },
+      include: {
+        vendor: {
+          include: {
+            user: {
+              select: {
+                firstName: true,
+                lastName: true,
+                email: true,
+                campus: { select: { name: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async deleteVendor(vendorId: string) {
+    const vendor = await this.prisma.vendor.findUnique({
+      where: { id: vendorId },
+      include: { user: { select: { id: true } } },
+    });
+    if (!vendor) throw new NotFoundException('Vendor not found');
+
+    // Deleting the user cascades to the vendor record
+    await this.prisma.user.delete({ where: { id: vendor.user.id } });
+
+    return { deleted: true, vendorId };
+  }
 }

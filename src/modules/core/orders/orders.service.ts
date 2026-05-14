@@ -102,7 +102,7 @@ export class OrdersService {
     });
   }
 
-  async findById(id: string, userId: string) {
+  async findById(id: string, userId: string, role?: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
@@ -118,8 +118,10 @@ export class OrdersService {
 
     if (!order) throw new NotFoundException('Order not found');
 
-    const isOwner = order.buyerId === userId || order.vendor.userId === userId;
-    if (!isOwner) throw new ForbiddenException('Access denied');
+    if (role !== 'SUPER_ADMIN') {
+      const isOwner = order.buyerId === userId || order.vendor.userId === userId;
+      if (!isOwner) throw new ForbiddenException('Access denied');
+    }
 
     return order;
   }
