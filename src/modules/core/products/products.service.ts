@@ -29,15 +29,22 @@ export class ProductsService {
       throw new ForbiddenException('You must be assigned to a campus');
     }
 
+    // Inherit vendor's maxPreorderDays for preorder products if not explicitly provided
+    const maxPreorderDays =
+      createDto.saleType === 'PREORDER' && !createDto.maxPreorderDays
+        ? vendor.maxPreorderDays ?? undefined
+        : createDto.maxPreorderDays;
+
     return this.prisma.product.create({
       data: {
         ...createDto,
         price: new Prisma.Decimal(createDto.price),
         vendorId: vendor.id,
         campusId: vendor.user.campusId,
+        maxPreorderDays,
       },
       include: {
-        vendor: { select: { storeName: true } },
+        vendor: { select: { storeName: true, rating: true, maxPreorderDays: true } },
         category: { select: { name: true } },
       },
     });
@@ -85,7 +92,7 @@ export class ProductsService {
       this.prisma.product.findMany({
         where,
         include: {
-          vendor: { select: { storeName: true, rating: true } },
+          vendor: { select: { storeName: true, rating: true, maxPreorderDays: true } },
           category: { select: { name: true } },
         },
         orderBy: { [resolvedSortBy]: sortOrder },
@@ -115,6 +122,7 @@ export class ProductsService {
             id: true,
             storeName: true,
             rating: true,
+            maxPreorderDays: true,
             user: {
               select: {
                 firstName: true,
@@ -219,7 +227,7 @@ export class ProductsService {
       this.prisma.product.findMany({
         where,
         include: {
-          vendor: { select: { storeName: true, rating: true } },
+          vendor: { select: { storeName: true, rating: true, maxPreorderDays: true } },
           category: { select: { name: true } },
         },
         orderBy: { [sortBy]: sortOrder },
