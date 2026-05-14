@@ -60,6 +60,12 @@ export class CreateProductDto {
   @Min(1)
   @Type(() => Number)
   maxPreorderDays?: number;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  isActive?: boolean;
 }
 
 export class ProductQueryDto {
