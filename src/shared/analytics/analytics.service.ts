@@ -180,6 +180,12 @@ export class AnalyticsService {
   }
 
   async getAdminDashboard() {
+    const qualifyingPaymentsWhere = {
+      // HELD = escrowed after payment, RELEASED = paid out — both count as revenue
+      status: { in: [PaymentStatus.HELD, PaymentStatus.RELEASED] as PaymentStatus[] },
+      order: { status: { notIn: [OrderStatus.CANCELLED] as OrderStatus[] } },
+    };
+
     const [
       totalUsers,
       totalVendors,
@@ -187,25 +193,31 @@ export class AnalyticsService {
       totalProducts,
       totalOrders,
       pendingDisputes,
-      totalRevenue,
+      revenueAgg,
+      withdrawalsAgg,
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.vendor.count(),
-      this.prisma.vendor.count({
-        where: { verificationStatus: 'PENDING' },
-      }),
+      this.prisma.vendor.count({ where: { verificationStatus: 'PENDING' } }),
       this.prisma.product.count(),
       this.prisma.order.count(),
       this.prisma.dispute.count({
         where: { status: { in: ['OPEN', 'UNDER_REVIEW'] } },
       }),
-      this.prisma.payment
-        .aggregate({
-          where: { status: { in: ['HELD', 'RELEASED'] } },
-          _sum: { amount: true },
-        })
-        .then((r) => Number(r._sum.amount || 0)),
+      this.prisma.payment.aggregate({
+        where: qualifyingPaymentsWhere,
+        _sum: { amount: true },
+      }),
+      this.prisma.withdrawalRequest.aggregate({
+        where: { status: 'APPROVED' },
+        _sum: { amount: true },
+      }),
     ]);
+
+    const totalRevenue = Number(revenueAgg._sum.amount ?? 0);
+    const platformFees = Math.round(totalRevenue * 0.075 * 100) / 100;
+    const netRevenue = Math.round((totalRevenue - platformFees) * 100) / 100;
+    const totalWithdrawals = Number(withdrawalsAgg._sum.amount ?? 0);
 
     // Recent activity
     const recentOrders = await this.prisma.order.findMany({
@@ -239,6 +251,9 @@ export class AnalyticsService {
         totalOrders,
         pendingDisputes,
         totalRevenue,
+        platformFees,
+        netRevenue,
+        totalWithdrawals,
       },
       recentOrders,
       recentUsers,
