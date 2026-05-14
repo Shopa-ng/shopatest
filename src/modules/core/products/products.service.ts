@@ -94,6 +94,8 @@ export class ProductsService {
         include: {
           vendor: { select: { storeName: true, rating: true, maxPreorderDays: true } },
           category: { select: { name: true } },
+          reviews: { select: { rating: true } },
+          _count: { select: { reviews: true } },
         },
         orderBy: { [resolvedSortBy]: sortOrder },
         skip: (page - 1) * limit,
@@ -103,7 +105,7 @@ export class ProductsService {
     ]);
 
     return {
-      data: products,
+      data: products.map(this.withRating),
       meta: {
         total,
         page,
@@ -229,6 +231,8 @@ export class ProductsService {
         include: {
           vendor: { select: { storeName: true, rating: true, maxPreorderDays: true } },
           category: { select: { name: true } },
+          reviews: { select: { rating: true } },
+          _count: { select: { reviews: true } },
         },
         orderBy: { [sortBy]: sortOrder },
         skip: (page - 1) * limit,
@@ -238,7 +242,7 @@ export class ProductsService {
     ]);
 
     return {
-      data: products,
+      data: products.map(this.withRating),
       meta: {
         total,
         page,
@@ -246,5 +250,16 @@ export class ProductsService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  private withRating<T extends { reviews: { rating: number }[]; _count: { reviews: number } }>(
+    product: T,
+  ): Omit<T, 'reviews' | '_count'> & { rating: number; reviewCount: number } {
+    const { reviews, _count, ...rest } = product;
+    const rating =
+      reviews.length > 0
+        ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+        : 0;
+    return { ...rest, rating, reviewCount: _count.reviews };
   }
 }
