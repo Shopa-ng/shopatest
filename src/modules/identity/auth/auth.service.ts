@@ -101,14 +101,22 @@ async createAdmin(dto: {
     },
   });
 
-  // Send welcome email to new admin
+  // Send login credentials to new admin — use plain password before it's hashed above
   this.emailService.sendEmail({
     to: user.email,
-    subject: 'Your Shopa Admin Account Has Been Created',
-    template: 'welcome',
+    subject: 'Your Shopa Admin Account',
+    template: 'order-status',
     context: {
       firstName: user.firstName,
-      customMessage: `You have been assigned as a university admin for ${campus.name} on Shopa. Log in at uadmin.shopshopa.com.ng with your email and the password provided to you.`,
+      orderNumber: campus.name,
+      status: 'ADMIN_CREATED',
+      statusMessage:
+        `Hi ${user.firstName},\n\nYour university admin account has been created on Shopa.\n\n` +
+        `Login details:\n` +
+        `Portal: https://uadmin.shopshopa.com.ng\n` +
+        `Email: ${user.email}\n` +
+        `Password: ${dto.password}\n\n` +
+        `— The Shopa Team`,
     },
   }).catch(() => null);
 

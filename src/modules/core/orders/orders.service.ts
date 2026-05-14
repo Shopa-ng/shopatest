@@ -109,8 +109,19 @@ export class OrdersService {
         orderItems: {
           include: { product: { select: { name: true, images: true, price: true } } },
         },
-        buyer: { select: { id: true, firstName: true, lastName: true, phone: true } },
-        vendor: { select: { id: true, storeName: true, userId: true } },
+        buyer: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
+        vendor: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                campus: { select: { name: true } },
+              },
+            },
+          },
+        },
         payment: true,
         disputes: { select: { id: true, status: true, reason: true } },
       },
