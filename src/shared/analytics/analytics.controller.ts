@@ -23,7 +23,7 @@ export class AnalyticsController {
 
   @Get('admin')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Get admin dashboard statistics' })
   async getAdminDashboard() {
     return this.analyticsService.getAdminDashboard();

@@ -187,7 +187,7 @@ export class AnalyticsService {
     };
 
     const [
-      totalUsers,
+      totalStudents,
       totalVendors,
       pendingVendorVerifications,
       totalProducts,
@@ -196,7 +196,7 @@ export class AnalyticsService {
       revenueAgg,
       withdrawalsAgg,
     ] = await Promise.all([
-      this.prisma.user.count(),
+      this.prisma.user.count({ where: { role: 'STUDENT' } }),
       this.prisma.vendor.count(),
       this.prisma.vendor.count({ where: { verificationStatus: 'PENDING' } }),
       this.prisma.product.count(),
@@ -244,7 +244,7 @@ export class AnalyticsService {
 
     return {
       stats: {
-        totalUsers,
+        totalStudents,
         totalVendors,
         pendingVendorVerifications,
         totalProducts,
