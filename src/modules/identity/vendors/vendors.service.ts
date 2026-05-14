@@ -437,24 +437,30 @@ export class VendorsService {
       const hasActiveDispute = disputeStatuses.some((s) =>
         ['OPEN', 'VENDOR_RESPONDED'].includes(s),
       );
+      const hasResolvedNoRefund =
+        disputeStatuses.includes('RESOLVED') &&
+        order.refundStatus !== 'PENDING_REFUND';
       const isRefunded = order.refundStatus === 'PENDING_REFUND';
-      const inWindow =
+      const windowExpired =
         order.disputeWindowExpiresAt != null &&
-        order.disputeWindowExpiresAt > now;
+        order.disputeWindowExpiresAt <= now;
+      const noDisputeRaised = order.disputes.length === 0;
 
       if (isRefunded) {
-        // Refund decided — vendor loses the money, doesn't count toward either balance
+        // Vendor loses this money — excluded from both balances
         continue;
       }
 
-      // Counts toward available (earned) regardless of lock status
       availableBalance += earned;
 
-      if (!hasActiveDispute && !inWindow) {
-        // Clear to withdraw
+      if (hasResolvedNoRefund) {
+        // Dispute closed in vendor's favour — immediately withdrawable regardless of window
+        withdrawableBalance += earned;
+      } else if (noDisputeRaised && windowExpired) {
+        // 24hr window passed with no dispute raised — immediately withdrawable
         withdrawableBalance += earned;
       }
-      // else: still in window or active dispute — earned but not yet withdrawable
+      // else: active/pending dispute, or still within the 24hr window
     }
 
     withdrawableBalance = Math.max(0, withdrawableBalance - pendingWithdrawals);
