@@ -410,10 +410,9 @@ export class VendorsService {
     const [
       disputeWindowOrders,
       activeDisputeOrders,
-      refundDisputeOrders,
       pendingWithdrawalsAgg,
     ] = await Promise.all([
-      // Orders still within the 24hr dispute window (delivered but not yet clearable)
+      // Orders still within the 24hr dispute window (no dispute raised yet)
       this.prisma.order.findMany({
         where: {
           vendorId,
@@ -423,7 +422,7 @@ export class VendorsService {
         },
         select: { totalAmount: true },
       }),
-      // Orders with open or vendor-responded disputes
+      // Orders with unresolved disputes — outcome unknown, funds locked
       this.prisma.order.findMany({
         where: {
           vendorId,
@@ -431,12 +430,7 @@ export class VendorsService {
         },
         select: { totalAmount: true },
       }),
-      // Orders where dispute was resolved as refund
-      this.prisma.order.findMany({
-        where: { vendorId, refundStatus: 'PENDING_REFUND' },
-        select: { totalAmount: true },
-      }),
-      // Pending/approved withdrawal requests
+      // Pending/approved withdrawal requests already in flight
       this.prisma.withdrawalRequest.aggregate({
         where: { vendorId, status: { in: ['PENDING', 'APPROVED'] } },
         _sum: { amount: true },
@@ -447,19 +441,18 @@ export class VendorsService {
     const totalWithdrawn = Number(vendor.totalWithdrawn ?? 0);
     const pendingWithdrawals = Number(pendingWithdrawalsAgg._sum.amount ?? 0);
 
+    // Refund outcomes are already reflected in availableBalance (decremented on resolve).
+    // Only lock amounts that are still genuinely uncertain.
     const lockedInWindow = disputeWindowOrders.reduce(
       (s, o) => s + Number(o.totalAmount) * 0.925, 0,
     );
     const lockedInDispute = activeDisputeOrders.reduce(
       (s, o) => s + Number(o.totalAmount) * 0.925, 0,
     );
-    const lockedRefund = refundDisputeOrders.reduce(
-      (s, o) => s + Number(o.totalAmount) * 0.925, 0,
-    );
 
     const withdrawableBalance = Math.max(
       0,
-      availableBalance - lockedInWindow - lockedInDispute - lockedRefund - pendingWithdrawals,
+      availableBalance - lockedInWindow - lockedInDispute - pendingWithdrawals,
     );
 
     return {

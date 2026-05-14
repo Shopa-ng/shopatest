@@ -403,15 +403,32 @@ export class DisputesService {
     const customerName = `${buyer.firstName} ${buyer.lastName}`;
     const isRefund = outcome === DisputeOutcome.REFUND_REQUESTED;
 
-    // Update dispute + conditionally set refundStatus on order
+    const vendorEarnings = Number(order.totalAmount) * 0.925;
+
+    // Update dispute + order + vendor balance atomically
     await this.prisma.$transaction([
       this.prisma.dispute.update({
         where: { id },
         data: { status: DisputeStatus.RESOLVED, resolution, resolvedById: adminId },
       }),
       ...(isRefund
-        ? [this.prisma.order.update({ where: { id: order.id }, data: { refundStatus: 'PENDING_REFUND' } })]
-        : []),
+        ? [
+            // Mark order for manual refund processing
+            this.prisma.order.update({
+              where: { id: order.id },
+              data: { refundStatus: 'PENDING_REFUND' },
+            }),
+            // Deduct earned amount from vendor's available balance
+            this.prisma.vendor.update({
+              where: { id: order.vendorId },
+              data: { availableBalance: { decrement: vendorEarnings } },
+            }),
+          ]
+        : [
+            // No refund — dispute window/lock is cleared by RESOLVED status,
+            // withdrawableBalance computation already excludes RESOLVED disputes
+            // Nothing extra needed; available balance was credited on DELIVERED
+          ]),
     ]);
 
     if (isRefund) {
