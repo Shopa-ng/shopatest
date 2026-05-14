@@ -497,16 +497,25 @@ export class VendorsService {
       );
     }
 
-    return this.prisma.withdrawalRequest.create({
-      data: {
-        amount: dto.amount,
-        bankName: dto.bankName,
-        accountNumber: dto.accountNumber,
-        accountName: dto.accountName,
-        vendorId: vendor.id,
-        status: 'PENDING',
-      },
-    });
+    const [withdrawal] = await this.prisma.$transaction([
+      this.prisma.withdrawalRequest.create({
+        data: {
+          amount: dto.amount,
+          bankName: dto.bankName,
+          accountNumber: dto.accountNumber,
+          accountName: dto.accountName,
+          vendorId: vendor.id,
+          status: 'PENDING',
+        },
+      }),
+      // Reserve the amount — deduct from availableBalance immediately
+      this.prisma.vendor.update({
+        where: { id: vendor.id },
+        data: { availableBalance: { decrement: dto.amount } },
+      }),
+    ]);
+
+    return withdrawal;
   }
 
   // ─── Get Withdrawal History ───────────────────────────────────────────────────
@@ -550,7 +559,7 @@ export class VendorsService {
       include: {
         vendor: {
           include: {
-            user: { select: { email: true, firstName: true } },
+            user: { select: { id: true, email: true, firstName: true } },
           },
         },
       },
@@ -561,42 +570,52 @@ export class VendorsService {
       throw new BadRequestException('This withdrawal has already been processed');
     }
 
-    const updated = await this.prisma.withdrawalRequest.update({
-      where: { id },
-      data: {
-        status: dto.status,
-        note: dto.note,
-        processedById: adminId,
-        processedAt: new Date(),
-      },
-    });
+    const amount = Number(withdrawal.amount);
+    const amountStr = amount.toLocaleString('en-NG');
 
-    // Update vendor's totalWithdrawn if approved
-    if (dto.status === 'APPROVED') {
-      await this.prisma.vendor.update({
-        where: { id: withdrawal.vendorId },
-        data: {
-          totalWithdrawn: {
-            increment: withdrawal.amount,
-          },
-        },
-      });
-    }
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.withdrawalRequest.update({
+        where: { id },
+        data: { status: dto.status, note: dto.note, processedById: adminId, processedAt: new Date() },
+      }),
+      dto.status === 'APPROVED'
+        ? // Amount was already deducted from availableBalance on request — just record as withdrawn
+          this.prisma.vendor.update({
+            where: { id: withdrawal.vendorId },
+            data: { totalWithdrawn: { increment: withdrawal.amount } },
+          })
+        : // Rejected — restore the reserved amount back to availableBalance
+          this.prisma.vendor.update({
+            where: { id: withdrawal.vendorId },
+            data: { availableBalance: { increment: withdrawal.amount } },
+          }),
+    ]);
 
-    // Notify vendor by email
+    const { bankName, accountNumber } = withdrawal;
+
+    // Email vendor
     this.emailService
       .sendEmail({
         to: withdrawal.vendor.user.email,
-        subject:
-          dto.status === 'APPROVED'
-            ? '✅ Withdrawal Request Approved'
-            : 'Withdrawal Request Update',
+        subject: dto.status === 'APPROVED' ? '✅ Withdrawal Processed' : 'Withdrawal Request Update',
         template: 'withdrawal-update',
-context: {
-  approved: dto.status === 'APPROVED',
-  amount: Number(withdrawal.amount).toLocaleString(),
-  resolution: dto.note ?? '',
-},
+        context: {
+          approved: dto.status === 'APPROVED',
+          amount: amountStr,
+          resolution: dto.status === 'APPROVED'
+            ? `Your withdrawal of ₦${amountStr} has been processed to ${bankName} - ${accountNumber}.`
+            : (dto.note ?? 'Your withdrawal request was not approved.'),
+        },
+      })
+      .catch(() => null);
+
+    // Push vendor
+    this.pushService
+      .sendToUser(withdrawal.vendor.user.id, {
+        title: dto.status === 'APPROVED' ? 'Withdrawal Processed' : 'Withdrawal Not Approved',
+        body: dto.status === 'APPROVED'
+          ? `Your withdrawal of ₦${amountStr} has been processed to ${bankName} - ${accountNumber}.`
+          : (dto.note ?? 'Your withdrawal request was not approved.'),
       })
       .catch(() => null);
 
