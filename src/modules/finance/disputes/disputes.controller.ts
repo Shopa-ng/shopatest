@@ -42,8 +42,14 @@ export class DisputesController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, 'SUPER_ADMIN' as any)
   @ApiOperation({ summary: 'Get all disputes (Admin)' })
-  async findAll(@Query('status') status?: DisputeStatus) {
-    return this.disputesService.findAll(status);
+  async findAll(
+    @Query('status') status?: DisputeStatus,
+    @CurrentUser('role') role?: string,
+    @CurrentUser('campusId') campusId?: string,
+  ) {
+    // Campus admins are scoped to their campus via JWT; super admins see all
+    const scopedCampusId = role === 'ADMIN' ? campusId : undefined;
+    return this.disputesService.findAll(status, scopedCampusId);
   }
 
   @Get(':id')

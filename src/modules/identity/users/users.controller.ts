@@ -65,10 +65,15 @@ export class UsersController {
 
   @Get('pending-verifications')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, 'SUPER_ADMIN' as any)
   @ApiOperation({ summary: 'Get pending user verifications (Admin only)' })
-  async getPendingVerifications(@Query('campusId') campusId?: string) {
-    return this.usersService.findPendingVerifications(campusId);
+  async getPendingVerifications(
+    @CurrentUser('role') role: string,
+    @CurrentUser('campusId') campusId: string,
+  ) {
+    // Campus admins always scoped to their campus from JWT
+    const scopedCampusId = role === 'ADMIN' ? campusId : undefined;
+    return this.usersService.findPendingVerifications(scopedCampusId);
   }
 
   @Patch('admin/:id/toggle-status')

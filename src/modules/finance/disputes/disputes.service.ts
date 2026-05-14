@@ -246,9 +246,12 @@ export class DisputesService {
     });
   }
 
-  async findAll(status?: DisputeStatus) {
+  async findAll(status?: DisputeStatus, campusId?: string) {
     return this.prisma.dispute.findMany({
-      where: status ? { status } : undefined,
+      where: {
+        ...(status && { status }),
+        ...(campusId && { order: { vendor: { user: { campusId } } } }),
+      },
       include: {
         order: {
           select: {
