@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   BadRequestException,
   ForbiddenException,
@@ -12,6 +13,8 @@ import { DisputeStatus, OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class DisputesService {
+  private readonly logger = new Logger(DisputesService.name);
+
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
@@ -405,6 +408,10 @@ export class DisputesService {
 
     const vendorEarnings = Number(order.totalAmount) * 0.925;
 
+    this.logger.log(
+      `[resolve] dispute=${id} outcome=${outcome} orderAmount=${order.totalAmount} vendorEarnings=${vendorEarnings} vendorId=${order.vendorId}`,
+    );
+
     // Update dispute + order + vendor balance atomically
     await this.prisma.$transaction([
       this.prisma.dispute.update({
@@ -425,11 +432,14 @@ export class DisputesService {
             }),
           ]
         : [
-            // No refund — dispute window/lock is cleared by RESOLVED status,
-            // withdrawableBalance computation already excludes RESOLVED disputes
-            // Nothing extra needed; available balance was credited on DELIVERED
+            // No refund — dispute cleared; withdrawable balance computed dynamically
+            // from order queries so no DB write needed here
           ]),
     ]);
+
+    this.logger.log(
+      `[resolve] transaction complete — dispute=${id} outcome=${outcome}`,
+    );
 
     if (isRefund) {
       // Email + push to buyer

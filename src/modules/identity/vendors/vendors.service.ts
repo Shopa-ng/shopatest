@@ -406,54 +406,58 @@ export class VendorsService {
 
     const now = new Date();
     const vendorId = vendor.id;
+    const FEE = 0.925;
 
-    const [
-      disputeWindowOrders,
-      activeDisputeOrders,
-      pendingWithdrawalsAgg,
-    ] = await Promise.all([
-      // Orders still within the 24hr dispute window (no dispute raised yet)
+    const [allDelivered, pendingWithdrawalsAgg] = await Promise.all([
+      // Every delivered/completed order with its dispute state
       this.prisma.order.findMany({
-        where: {
-          vendorId,
-          status: { in: ['DELIVERED', 'COMPLETED'] },
-          disputeWindowExpiresAt: { gt: now },
-          disputes: { none: {} },
+        where: { vendorId, status: { in: ['DELIVERED', 'COMPLETED'] } },
+        select: {
+          totalAmount: true,
+          disputeWindowExpiresAt: true,
+          refundStatus: true,
+          disputes: { select: { status: true } },
         },
-        select: { totalAmount: true },
       }),
-      // Orders with unresolved disputes — outcome unknown, funds locked
-      this.prisma.order.findMany({
-        where: {
-          vendorId,
-          disputes: { some: { status: { in: ['OPEN', 'VENDOR_RESPONDED'] } } },
-        },
-        select: { totalAmount: true },
-      }),
-      // Pending/approved withdrawal requests already in flight
       this.prisma.withdrawalRequest.aggregate({
         where: { vendorId, status: { in: ['PENDING', 'APPROVED'] } },
         _sum: { amount: true },
       }),
     ]);
 
-    const availableBalance = Number(vendor.availableBalance ?? 0);
     const totalWithdrawn = Number(vendor.totalWithdrawn ?? 0);
     const pendingWithdrawals = Number(pendingWithdrawalsAgg._sum.amount ?? 0);
 
-    // Refund outcomes are already reflected in availableBalance (decremented on resolve).
-    // Only lock amounts that are still genuinely uncertain.
-    const lockedInWindow = disputeWindowOrders.reduce(
-      (s, o) => s + Number(o.totalAmount) * 0.925, 0,
-    );
-    const lockedInDispute = activeDisputeOrders.reduce(
-      (s, o) => s + Number(o.totalAmount) * 0.925, 0,
-    );
+    let availableBalance = 0;
+    let withdrawableBalance = 0;
 
-    const withdrawableBalance = Math.max(
-      0,
-      availableBalance - lockedInWindow - lockedInDispute - pendingWithdrawals,
-    );
+    for (const order of allDelivered) {
+      const earned = Number(order.totalAmount) * FEE;
+      const disputeStatuses = order.disputes.map((d) => d.status);
+      const hasActiveDispute = disputeStatuses.some((s) =>
+        ['OPEN', 'VENDOR_RESPONDED'].includes(s),
+      );
+      const isRefunded = order.refundStatus === 'PENDING_REFUND';
+      const inWindow =
+        order.disputeWindowExpiresAt != null &&
+        order.disputeWindowExpiresAt > now;
+
+      if (isRefunded) {
+        // Refund decided — vendor loses the money, doesn't count toward either balance
+        continue;
+      }
+
+      // Counts toward available (earned) regardless of lock status
+      availableBalance += earned;
+
+      if (!hasActiveDispute && !inWindow) {
+        // Clear to withdraw
+        withdrawableBalance += earned;
+      }
+      // else: still in window or active dispute — earned but not yet withdrawable
+    }
+
+    withdrawableBalance = Math.max(0, withdrawableBalance - pendingWithdrawals);
 
     return {
       availableBalance,
