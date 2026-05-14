@@ -420,7 +420,7 @@ export class VendorsService {
         },
       }),
       this.prisma.withdrawalRequest.aggregate({
-        where: { vendorId, status: { in: ['PENDING', 'APPROVED'] } },
+        where: { vendorId, status: 'PENDING' },
         _sum: { amount: true },
       }),
     ]);
